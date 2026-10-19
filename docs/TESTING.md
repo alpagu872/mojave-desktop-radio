@@ -18,6 +18,8 @@ Offline, with the BridgeHost running (`mdr` = `dist\BridgeHost\mdr.exe`):
 | O6 | `mdr pipe-test` | `state`, `unsupported_version`, `unknown_action` |
 | O7 | `mdr_plugin_harness.exe <dll> 15` | `game config: … preset=Mojave`, later `preset=Wasteland`, station ON/OFF, routing restored on exit |
 | O8 | same with `--autolaunch` and no BridgeHost running | `BridgeHost launched: …`, BridgeHost exits after the harness |
+| O9 | `mdr players` | Spotify `session=Spotify.exe`; the others `running=no` unless installed |
+| O10 | harness run (O7) | at 10 s `desktop player (game): Spotify -> foobar2000`, panel `STATUS: FOOBAR2000 NOT RUNNING`; at 11 s back to Spotify with title/artist |
 
 In game (fresh profile with only the requirements + one big profile):
 
@@ -36,6 +38,8 @@ In game (fresh profile with only the requirements + one big profile):
 | G11 | fast travel, load another save, exit to main menu | no hang; station state follows the save |
 | G12 | quit the game | Spotify keeps running (paused), routing restored, tray icon gone after ~3 s |
 | G13 | FPS with the station on/off | no difference |
+| G14 | MCM → Desktop Player → foobar2000 (not installed), then Spotify | panel `STATUS: FOOBAR2000 NOT RUNNING`, Spotify paused and its routing restored; back to Spotify → works as before; tray *Desktop player* greyed out while the game runs |
+| G15 | (optional, if installed) another player via MCM | play/pause/next, title on the panel, FX — report results, the author did not test them |
 
 Isolated offline run (does not disturb a game that is running at the same time):
 `mdr_plugin_harness.exe dist\Data\NVSE\Plugins\MojaveDesktopRadio.dll 22 --autolaunch --pipe MDR-Test`
@@ -44,5 +48,7 @@ Copy `dist\Data` elsewhere first: the harness writes a test INI next to the DLL.
 
 Status on the author's PC (VUI+, Pip-Boy 2000 Mk VI, Turkish translation, NVR):
 * 0.1.0: O1, O4, O6–O8, G1–G3 (station, panel, PAUSE/NEXT/PREVIOUS, Turkish text) verified.
+* 0.2.2: O9/O10 verified offline (player switch, texts, settings.json untouched in test mode).
+  **G14 must be confirmed in game; G15 depends on players the author does not use.**
 * 0.2.0: O7/O8 verified with the release layout (settings delivered, preset change applied in 1 ms,
   bundled BridgeHost launched and closed). **G4/G5 (FX button, MCM) must be confirmed in game.**

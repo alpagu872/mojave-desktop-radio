@@ -44,9 +44,9 @@ public class ProtocolTests
     [Fact]
     public void Error_messages_include_id_and_code()
     {
-        using var doc = JsonDocument.Parse(Protocol.Error(5, "spotify_not_running", "x"));
+        using var doc = JsonDocument.Parse(Protocol.Error(5, "player_not_running", "x"));
         Assert.Equal("error", doc.RootElement.GetProperty("type").GetString());
         Assert.Equal(5, doc.RootElement.GetProperty("id").GetInt64());
-        Assert.Equal("spotify_not_running", doc.RootElement.GetProperty("code").GetString());
+        Assert.Equal("player_not_running", doc.RootElement.GetProperty("code").GetString());
     }
 }

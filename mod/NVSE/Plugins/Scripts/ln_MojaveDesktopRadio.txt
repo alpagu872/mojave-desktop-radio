@@ -40,6 +40,7 @@ Player.AuxVarSetFlt "*_MDRAutoPause" (GetINIFloat_Cached "Behaviour:bAutoPause" 
 Player.AuxVarSetFlt "*_MDRAutoPlay" (GetINIFloat_Cached "Behaviour:bAutoPlay" "MojaveDesktopRadio.ini" 1) 0
 Player.AuxVarSetFlt "*_MDRPauseMenu" (GetINIFloat_Cached "Behaviour:iPauseMenu" "MojaveDesktopRadio.ini" 0) 0
 Player.AuxVarSetFlt "*_MDRTrackMsg" (GetINIFloat_Cached "Behaviour:bTrackMessages" "MojaveDesktopRadio.ini" 1) 0
+Player.AuxVarSetFlt "*_MDRPlayer" (GetINIFloat_Cached "Player:iPlayer" "MojaveDesktopRadio.ini" 0) 0
 Player.AuxVarSetFlt "*_MDRKeyToggle" (GetINIFloat_Cached "Keys:iPlayPause" "MojaveDesktopRadio.ini" 0) 0
 Player.AuxVarSetFlt "*_MDRKeyNext" (GetINIFloat_Cached "Keys:iNext" "MojaveDesktopRadio.ini" 0) 0
 Player.AuxVarSetFlt "*_MDRKeyPrev" (GetINIFloat_Cached "Keys:iPrevious" "MojaveDesktopRadio.ini" 0) 0

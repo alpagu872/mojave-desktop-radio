@@ -6,10 +6,10 @@ namespace MojaveDesktopRadio.Media;
 
 public enum PlayerStatus
 {
-    /// <summary>Spotify.exe is not running.</summary>
+    /// <summary>The player's process is not running.</summary>
     NotRunning,
 
-    /// <summary>Spotify runs but has not registered a media session yet (nothing played since launch).</summary>
+    /// <summary>The player runs but has not registered a media session yet (Spotify: nothing played since launch).</summary>
     NoSession,
     Stopped,
     Paused,
@@ -48,12 +48,13 @@ public enum MediaCommand { Play, Pause, Toggle, Next, Previous }
 public enum CommandOutcome { Ok, NotRunning, NoSession, Rejected, Timeout }
 
 /// <summary>
-/// Spotify control through Windows Global System Media Transport Controls.
-/// Only sessions whose SourceAppUserModelId contains one of <c>sessionMatch</c> are ever touched;
-/// there is deliberately no fallback to the "current" session, so other players are never controlled.
+/// Desktop player control (Spotify by default, see <see cref="PlayerProfiles"/>) through Windows Global
+/// System Media Transport Controls. Only sessions whose SourceAppUserModelId contains one of
+/// <c>sessionMatch</c> are ever touched; there is deliberately no fallback to the "current" session,
+/// so browsers and other players are never controlled.
 /// All methods are synchronous with short timeouts and must be called from an MTA thread.
 /// </summary>
-public sealed class SpotifyMediaSource
+public sealed class DesktopMediaSource
 {
     private const int TimeoutMs = 2000;
     private readonly IReadOnlyList<string> _sessionMatch;
@@ -61,7 +62,7 @@ public sealed class SpotifyMediaSource
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
     private DateTime _nextManagerAttempt = DateTime.MinValue;
 
-    public SpotifyMediaSource(IReadOnlyList<string> sessionMatch, IReadOnlyCollection<string> processNames)
+    public DesktopMediaSource(IReadOnlyList<string> sessionMatch, IReadOnlyCollection<string> processNames)
     {
         _sessionMatch = sessionMatch;
         _processNames = processNames;
@@ -104,7 +105,7 @@ public sealed class SpotifyMediaSource
         catch (Exception ex)
         {
             LastError = ex.Message;
-            _manager = null; // session manager may be stale after Spotify restarts
+            _manager = null; // session manager may be stale after the player restarts
             return new MediaSnapshot(PlayerStatus.NoSession, "", "", "", null, false, false);
         }
     }
@@ -116,9 +117,9 @@ public sealed class SpotifyMediaSource
         var session = FindSession();
         if (session is null)
         {
-            // Spotify is open but has not created a media session yet (nothing played since launch).
-            // Send the command to Spotify's own window only — never a global media key.
-            if (command is MediaCommand.Play or MediaCommand.Toggle && SendAppCommandToSpotifyWindow(AppCommandPlayPause))
+            // The player is open but has not created a media session yet (Spotify: nothing played since launch).
+            // Send the command to the player's own window only — never a global media key.
+            if (command is MediaCommand.Play or MediaCommand.Toggle && SendAppCommandToPlayerWindow(AppCommandPlayPause))
                 return CommandOutcome.Ok;
             return CommandOutcome.NoSession;
         }
@@ -227,7 +228,7 @@ public sealed class SpotifyMediaSource
     private const int WmAppCommand = 0x0319;
     private const int AppCommandPlayPause = 14;
 
-    private bool SendAppCommandToSpotifyWindow(int appCommand)
+    private bool SendAppCommandToPlayerWindow(int appCommand)
     {
         foreach (var name in _processNames)
         {

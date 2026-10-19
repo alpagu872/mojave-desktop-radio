@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2.2
+
+**New (optional)**
+* **Other desktop players**: MCM → Mojave Desktop Radio → **Desktop Player** = Spotify (default),
+  foobar2000, MusicBee, AIMP, WACUP / Winamp or Custom (your own entry in `settings.json`). The same
+  choice is in the tray menu while the game is not running. Nothing changes for Spotify users.
+  The other players are **not tested by the author** and work only if they publish Windows media
+  controls — `mdr.exe players` shows what Windows reports.
+* Pip-Boy texts name the selected player (`STATUS: SPOTIFY NOT RUNNING`, `PRESS PLAY IN … ONCE`).
+  Custom translations: `%s` in `sPlayerNotFound`, `sPlayerNoSession`, `sMsgPlayerNotFound` = player name.
+
+**Changes**
+* `settings.json`: new `player` and `customPlayerName`; `sessionMatch` / `audioProcessNames` are now
+  used only by the *Custom* player. Files from 0.2.1 or older whose lists were edited are read as
+  *Custom* — choose *Custom* in MCM to keep using them.
+* Protocol error codes `spotify_not_running` / `spotify_no_session` are now `player_not_running` /
+  `player_no_session` (the plugin understands both).
+* `tools/deploy-mo2.ps1` adds new INI sections (`[Player]`) to an existing MCM settings file.
+* `tools/lint_scripts.py` checks that MCM, plugin and BridgeHost list the players in the same order.
+
 ## 0.2.1
 
 **Fixes**

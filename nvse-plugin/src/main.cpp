@@ -25,7 +25,7 @@
 namespace
 {
     constexpr UInt32 kPluginVersion = 3; // GetPluginVersion "MojaveDesktopRadio" (3: MDR:State has a revision argument)
-    constexpr const char* kPluginVersionString = "0.2.1";
+    constexpr const char* kPluginVersionString = "0.2.2";
     // RadioEntry* at 0x011DD42C (1.4.0.525), see JIP LN GameGlobals::PipboyRadio; configurable only for the test harness.
     constexpr UInt32 kRefIdOffset = 0x0C; // TESForm::refID
 
@@ -66,6 +66,10 @@ namespace
         std::string artist, title, fx = "Clean", fxRequested = "Clean", route = "off", routeDetail;
         bool fxEnabled = false, fxActive = false;
     } g_bridge;
+
+    // Name of the desktop player the BridgeHost controls (Spotify unless changed in MCM > Desktop Player).
+    // Kept across reconnects so the "not found" texts can still name it.
+    std::string g_playerName;
 
     std::string g_lastTrackKey;
     bool g_uiDirty = true;
@@ -118,6 +122,17 @@ namespace
         return fmt;
     }
 
+    // "%s" in the player texts = the player's name ("DESKTOP PLAYER" until the BridgeHost reported it)
+    std::string PlayerName(bool upper)
+    {
+        std::string n = g_playerName.empty() ? "Desktop player" : Game(g_playerName);
+        if (upper)
+            for (auto& c : n) c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
+        return n;
+    }
+
+    std::string PlayerText(const std::string& fmt, bool upper = true) { return ReplaceToken(fmt, PlayerName(upper)); }
+
     void Notify(const std::string& gameText)
     {
         if (!g_events || !g_gameLoaded || gameText.empty()) return;
@@ -150,7 +165,7 @@ namespace
         if (!connected)
         {
             signal = g_cfg.signalBridgeOffline;
-            status = g_cfg.playerNotFound;
+            status = PlayerText(g_cfg.playerNotFound);
         }
         else if (!g_bridge.valid)
         {
@@ -159,14 +174,14 @@ namespace
         else if (g_bridge.player == "not_running")
         {
             signal = g_cfg.signalLost;
-            status = g_cfg.playerNotFound;
+            status = PlayerText(g_cfg.playerNotFound);
         }
         else
         {
             signal = g_cfg.signalConnected;
             if (g_bridge.player == "playing") status = g_cfg.statusPlaying;
             else if (g_bridge.player == "paused") status = g_cfg.statusPaused;
-            else if (g_bridge.player == "no_session") status = g_cfg.playerNoSession;
+            else if (g_bridge.player == "no_session") status = PlayerText(g_cfg.playerNoSession);
             else status = g_cfg.statusStopped;
 
             if (!g_bridge.artist.empty()) artist = g_cfg.artistPrefix + Game(g_bridge.artist);
@@ -256,12 +271,18 @@ namespace
             s.fxActive = mdr::json::GetBool(o, "fxActive");
             s.route = mdr::json::GetString(o, "route", "off");
             s.routeDetail = mdr::json::GetString(o, "routeDetail");
+            const auto playerName = mdr::json::GetString(o, "playerName");
+            if (!playerName.empty() && playerName != g_playerName)
+            {
+                mdr::log::Info("desktop player: %s", playerName.c_str());
+                g_playerName = playerName;
+            }
 
             const bool lostPlayer = g_bridge.valid && g_bridge.player != "not_running" && s.player == "not_running";
             g_bridge = std::move(s);
             g_uiDirty = true;
 
-            if (g_stationActive && lostPlayer) Notify(g_cfg.msgPlayerNotFound);
+            if (g_stationActive && lostPlayer) Notify(PlayerText(g_cfg.msgPlayerNotFound, false));
 
             const std::string key = g_bridge.artist + "\x1f" + g_bridge.title;
             if (key != g_lastTrackKey)
@@ -278,7 +299,8 @@ namespace
         {
             const auto code = mdr::json::GetString(o, "code");
             mdr::log::Info("BridgeHost error %s: %s", code.c_str(), mdr::json::GetString(o, "message").c_str());
-            if (code == "spotify_not_running") Notify(g_cfg.msgPlayerNotFound);
+            // (BridgeHost 0.2.1 and older said "spotify_not_running")
+            if (code == "player_not_running" || code == "spotify_not_running") Notify(PlayerText(g_cfg.msgPlayerNotFound, false));
         }
         // "ack", "pong": nothing to do
     }
@@ -321,6 +343,13 @@ namespace
             else if (k == "autopause") w.Bool("autoPause", v != 0);
             else if (k == "autoplay") w.Bool("autoPlay", v != 0);
             else if (k == "pausemenu") w.Num("pauseMenu", v);
+            else if (k == "player")
+            {
+                // same order as the MCM option "Desktop Player" and PlayerProfiles.McmOrder in the BridgeHost
+                static const char* players[] = {"spotify", "foobar2000", "musicbee", "aimp", "wacup", "custom"};
+                int i = static_cast<int>(v);
+                w.Str("player", players[(i >= 0 && i <= 5) ? i : 0]);
+            }
             // "trackmsg" is handled by the plugin itself; unknown keys are ignored
         }
         return w.Finish();

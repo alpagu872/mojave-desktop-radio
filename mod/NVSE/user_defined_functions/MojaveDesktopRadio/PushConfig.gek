@@ -17,4 +17,5 @@ begin Function {}
 	DispatchEventAlt "MDR:Set" "autoplay" (Player.AuxVarGetFlt "*_MDRAutoPlay")
 	DispatchEventAlt "MDR:Set" "pausemenu" (Player.AuxVarGetFlt "*_MDRPauseMenu")
 	DispatchEventAlt "MDR:Set" "trackmsg" (Player.AuxVarGetFlt "*_MDRTrackMsg")
+	DispatchEventAlt "MDR:Set" "player" (Player.AuxVarGetFlt "*_MDRPlayer")
 end

@@ -4,7 +4,7 @@ using NAudio.CoreAudioApi;
 namespace MojaveDesktopRadio.Audio;
 
 /// <summary>
-/// Direct mode (no FX route): fades Spotify's own audio-session volume for the open/close
+/// Direct mode (no FX route): fades the player's own audio-session volume for the open/close
 /// transitions and the "mute instead of pause" option. The original volume is written to a
 /// marker before the first change so it is restored even after a crash.
 /// Runs synchronously on the engine thread (a fade is at most ~40 short steps).
@@ -40,7 +40,7 @@ public sealed class SessionVolumeFader
             {
                 var max = sessions.Max(s => s.SimpleAudioVolume.Volume);
                 _original = max <= 0.001f ? 1f : max;
-                WriteMarker(_original.Value);
+                WriteMarker(_original.Value, _processNames);
             }
 
             var target = Math.Clamp(factor, 0f, 1f) * _original.Value;
@@ -100,13 +100,16 @@ public sealed class SessionVolumeFader
         List<AudioSessionControl>? sessions = null;
         try
         {
-            var v = JsonSerializer.Deserialize<VolumeMarker>(File.ReadAllText(MarkerFile))?.Volume ?? 1f;
-            sessions = _devices.CollectSessions(_processNames);
+            var marker = JsonSerializer.Deserialize<VolumeMarker>(File.ReadAllText(MarkerFile));
+            var v = marker?.Volume ?? 1f;
+            // the marker names the player whose volume was changed (it may differ after a player switch)
+            IReadOnlyCollection<string> names = marker?.Processes is { Length: > 0 } p ? p : _processNames;
+            sessions = _devices.CollectSessions(names);
             if (sessions.Count > 0)
             {
                 SetAll(sessions, v);
                 TryDelete();
-                Log.Info($"recovered Spotify session volume ({v:0.00}) left over from a previous session");
+                Log.Info($"recovered {string.Join("/", names)} session volume ({v:0.00}) left over from an earlier change");
             }
         }
         catch (Exception ex)
@@ -129,12 +132,12 @@ public sealed class SessionVolumeFader
         }
     }
 
-    private static void WriteMarker(float volume)
+    private static void WriteMarker(float volume, IReadOnlyCollection<string> processes)
     {
         try
         {
             AppPaths.EnsureCreated();
-            File.WriteAllText(MarkerFile, JsonSerializer.Serialize(new VolumeMarker(volume)));
+            File.WriteAllText(MarkerFile, JsonSerializer.Serialize(new VolumeMarker(volume, processes.ToArray())));
         }
         catch
         {
@@ -147,5 +150,5 @@ public sealed class SessionVolumeFader
         try { File.Delete(MarkerFile); } catch { }
     }
 
-    private sealed record VolumeMarker(float Volume);
+    private sealed record VolumeMarker(float Volume, string[]? Processes = null);
 }

@@ -28,7 +28,8 @@ public sealed class BridgeEngine : IDisposable
     private readonly ManualResetEventSlim _ready = new();
 
     private AudioDevices _devices = null!;
-    private SpotifyMediaSource _media = null!;
+    private PlayerProfile _player = PlayerProfiles.Spotify;
+    private DesktopMediaSource _media = null!;
     private AppAudioRouting _routing = null!;
     private SessionVolumeFader _fader = null!;
     private DeviceWatcher? _watcher;
@@ -52,6 +53,7 @@ public sealed class BridgeEngine : IDisposable
     private int _tick;
     private long _seq;
     private string? _lastStateJson;
+    private string? _lastSessionId;
     private int _pipelineFailures;
     private DateTime _nextPipelineAttempt = DateTime.MinValue;
     private DateTime _routeRetryAt = DateTime.MinValue;
@@ -121,6 +123,9 @@ public sealed class BridgeEngine : IDisposable
 
     public void SendMediaCommand(MediaCommand command) => Post(() => RunMediaCommand(command));
 
+    /// <summary>Tray: choose the desktop player (while a game is connected its MCM option decides).</summary>
+    public void SelectPlayer(string key) => Post(() => ChangePlayer(key, "tray"));
+
     public EngineStatus GetStatus() => Invoke(BuildStatus);
 
     // ---- engine thread ------------------------------------------------------------------------
@@ -130,11 +135,13 @@ public sealed class BridgeEngine : IDisposable
         try
         {
             _devices = new AudioDevices();
-            _media = new SpotifyMediaSource(_settings.SessionMatch, _settings.AudioProcessNames);
+            _player = _settings.ResolvePlayer();
+            _media = new DesktopMediaSource(_player.SessionMatch, _player.ProcessNames);
             _routing = new AppAudioRouting { Enabled = _settings.AudioEnabled };
-            _fader = new SessionVolumeFader(_devices, _settings.AudioProcessNames, _settings.AudioEnabled);
+            _fader = new SessionVolumeFader(_devices, _player.ProcessNames, _settings.AudioEnabled);
+            Log.Info($"desktop player: {Describe(_player)}");
 
-            // Crash recovery first: never leave Spotify routed / muted from a previous run.
+            // Crash recovery first: never leave the player routed / muted from a previous run.
             _routing.RecoverIfNeeded();
             _fader.RecoverIfNeeded();
 
@@ -224,9 +231,14 @@ public sealed class BridgeEngine : IDisposable
             var wasRunning = _snapshot.Status != PlayerStatus.NotRunning;
             _snapshot = snap;
             if (wasRunning && snap.Status == PlayerStatus.NotRunning)
-                Log.Info("Spotify closed");
+                Log.Info($"{_player.DisplayName} closed");
             else if (!wasRunning && snap.Status != PlayerStatus.NotRunning)
-                Log.Info("Spotify detected");
+                Log.Info($"{_player.DisplayName} detected");
+            if (snap.AppId is { } id && id != _lastSessionId)
+            {
+                _lastSessionId = id;
+                Log.Info($"{_player.DisplayName} media session: {id}");
+            }
             PublishState();
         }
     }
@@ -396,14 +408,16 @@ public sealed class BridgeEngine : IDisposable
 
     private static string OutcomeCode(CommandOutcome o) => o switch
     {
-        CommandOutcome.NotRunning => "spotify_not_running",
-        CommandOutcome.NoSession => "spotify_no_session",
+        CommandOutcome.NotRunning => "player_not_running",
+        CommandOutcome.NoSession => "player_no_session",
         CommandOutcome.Timeout => "timeout",
         _ => "rejected",
     };
 
     private void ApplyGameConfig(InboundMessage msg)
     {
+        if (msg.GetString("player") is { Length: > 0 } player) ChangePlayer(player, "game");
+
         var fx = _gameFx;
         if (msg.GetBool("fxEnabled") is { } en) fx = fx with { Enabled = en };
         if (FxSettings.TryParsePreset(msg.GetString("preset"), out var p)) fx = fx with { Preset = p };
@@ -483,7 +497,7 @@ public sealed class BridgeEngine : IDisposable
             }
             else
             {
-                // keep Spotify running but silent
+                // keep the player running but silent
                 _holdMuted = true;
                 if (_pipeline is null) _fader.FadeTo(0f, fx.FadeMs);
             }
@@ -561,7 +575,7 @@ public sealed class BridgeEngine : IDisposable
 
     /// <summary>
     /// Brings the audio path in line with the current state. Idempotent; called after every state
-    /// change and periodically. The invariant: Spotify is only ever routed away from the user's
+    /// change and periodically. The invariant: the player is only ever routed away from the user's
     /// device while a pipeline is running that plays it back.
     /// </summary>
     private void ApplyAudioPath()
@@ -578,10 +592,10 @@ public sealed class BridgeEngine : IDisposable
         var output = _devices.FindOutputDevice(_settings, null);
         var routeDev = _devices.FindRouteDevice(_settings, output?.ID);
         _routeDeviceName = routeDev?.FriendlyName;
-        var sessions = _devices.FindSessions(_settings.AudioProcessNames);
+        var sessions = _devices.FindSessions(_player.ProcessNames);
         var onRoute = routeDev is not null && sessions.Any(s => s.DeviceId == routeDev.ID);
         var activeElsewhere = routeDev is not null && sessions.Any(s => s.DeviceId != routeDev.ID && s.State == AudioSessionState.AudioSessionStateActive);
-        // "Manual" = the user routed Spotify to the route device themselves. Right after we restore our own
+        // "Manual" = the user routed the player to the route device themselves. Right after we restore our own
         // routing the old session lingers on the route device for a moment, so it must not count as manual.
         var manual = !_weRouted && DateTime.UtcNow >= _manualDetectAfter && routeDev is not null &&
                      sessions.Any(s => s.DeviceId == routeDev.ID && s.State == AudioSessionState.AudioSessionStateActive);
@@ -603,7 +617,7 @@ public sealed class BridgeEngine : IDisposable
             return;
         }
 
-        // We must route Spotify ourselves unless we already did or the user did it by hand.
+        // We must route the player ourselves unless we already did or the user did it by hand.
         var needRouting = processing && !_weRouted && !manual;
 
         // A routing attempt failed recently: stay Clean on the normal device for a while instead of retrying every tick.
@@ -647,16 +661,16 @@ public sealed class BridgeEngine : IDisposable
         {
             if (!_settings.AutoRouteSpotify)
             {
-                SetRoute(RouteState.Unavailable, $"route Spotify to '{routeDev.FriendlyName}' in Windows sound settings");
+                SetRoute(RouteState.Unavailable, $"route {_player.DisplayName} to '{routeDev.FriendlyName}' in Windows sound settings");
             }
             else if (!_media.IsProcessRunning())
             {
-                SetRoute(RouteState.Pending, "waiting for Spotify");
+                SetRoute(RouteState.Pending, $"waiting for {_player.DisplayName}");
             }
-            else if (_routing.Route(_settings.AudioProcessNames, routeDev.ID))
+            else if (_routing.Route(_player.ProcessNames, routeDev.ID))
             {
                 _weRouted = true;
-                Log.Info($"Spotify routed to '{routeDev.FriendlyName}'");
+                Log.Info($"{_player.DisplayName} routed to '{routeDev.FriendlyName}'");
                 SetRoute(RouteState.Pending, routeDev.FriendlyName);
             }
             else
@@ -680,14 +694,14 @@ public sealed class BridgeEngine : IDisposable
             _pipeline.FadeTo(gain, fx.FadeMs);
     }
 
-    /// <summary>When idle, notice that the user routed Spotify to the route device by hand (so we must pass it through).</summary>
+    /// <summary>When idle, notice that the user routed the player to the route device by hand (so we must pass it through).</summary>
     private void DetectManualRoute()
     {
         if (!_settings.AudioEnabled) return;
         var output = _devices.FindOutputDevice(_settings, null);
         var routeDev = _devices.FindRouteDevice(_settings, output?.ID);
         if (routeDev is null || DateTime.UtcNow < _manualDetectAfter) return;
-        if (_devices.FindSessions(_settings.AudioProcessNames)
+        if (_devices.FindSessions(_player.ProcessNames)
             .Any(s => s.DeviceId == routeDev.ID && s.State == AudioSessionState.AudioSessionStateActive))
             ApplyAudioPath();
     }
@@ -695,12 +709,12 @@ public sealed class BridgeEngine : IDisposable
     private void RestoreRouting()
     {
         if (!_weRouted) return;
-        if (_routing.Restore(_settings.AudioProcessNames) || !_media.IsProcessRunning())
+        if (_routing.Restore(_player.ProcessNames) || !_media.IsProcessRunning())
         {
-            // when Spotify is not running the marker stays and the restore is retried in Tick
+            // when the player is not running the marker stays and the restore is retried in Tick
             _weRouted = false;
             _manualDetectAfter = DateTime.UtcNow.AddSeconds(10);
-            Log.Info("Spotify routing restored");
+            Log.Info($"{_player.DisplayName} routing restored");
         }
     }
 
@@ -745,6 +759,57 @@ public sealed class BridgeEngine : IDisposable
         PublishState();
     }
 
+    // ---- desktop player -------------------------------------------------------------------------
+
+    private static string Describe(PlayerProfile p) =>
+        $"{p.DisplayName} [{p.Key}] sessions~{string.Join("|", p.SessionMatch)} processes={string.Join("|", p.ProcessNames)}" +
+        (p.Tested ? "" : " (not tested by the author)");
+
+    /// <summary>
+    /// Switches the controlled player. The old player is left exactly as it was before we touched it:
+    /// routing and session volume restored, and paused if it was playing on the station.
+    /// </summary>
+    private void ChangePlayer(string key, string source)
+    {
+        var next = _settings.ResolvePlayer(key);
+        if (!PlayerProfiles.IsKnownKey(key)) Log.Warn($"unknown player '{key}' from {source}, using {next.DisplayName}");
+        if (next.Key == _player.Key && next.SessionMatch.SequenceEqual(_player.SessionMatch) &&
+            next.ProcessNames.SequenceEqual(_player.ProcessNames))
+            return;
+
+        Log.Info($"desktop player ({source}): {_player.DisplayName} -> {Describe(next)}");
+        if (_stationActive && _snapshot.IsPlaying)
+        {
+            FadeOutCurrent(ActiveFx.FadeMs);
+            Execute(MediaCommand.Pause);
+        }
+
+        StopPipeline();
+        RestoreRouting();
+        _fader.Restore();
+
+        _player = next;
+        _media = new DesktopMediaSource(next.SessionMatch, next.ProcessNames);
+        _fader = new SessionVolumeFader(_devices, next.ProcessNames, _settings.AudioEnabled);
+        _snapshot = MediaSnapshot.NotRunningSnapshot;
+        _lastSessionId = null;
+        _holdMuted = false;
+        _pausedByMenu = false;
+        _routeRetryAt = DateTime.MinValue;
+        _nextPipelineAttempt = DateTime.MinValue;
+
+        // remembered for the tray and the next start (the --no-audio test mode never writes settings.json)
+        if (_settings.Player != next.Key)
+        {
+            _settings.Player = next.Key;
+            if (_settings.AudioEnabled) _settings.Save();
+        }
+
+        RefreshMedia();
+        ApplyAudioPath();
+        PublishState(force: true);
+    }
+
     // ---- state publication ---------------------------------------------------------------------
 
     private EngineStatus BuildStatus() => new(
@@ -757,7 +822,8 @@ public sealed class BridgeEngine : IDisposable
         _routeDetail,
         _routeDeviceName,
         _pipeline?.OutputDeviceName,
-        _desktopFx);
+        _desktopFx,
+        _player);
 
     private string BuildStateJson()
     {
@@ -767,6 +833,8 @@ public sealed class BridgeEngine : IDisposable
         {
             w.WriteNumber("seq", ++_seq);
             w.WriteString("player", _snapshot.StatusKey);
+            w.WriteString("playerKey", _player.Key);
+            w.WriteString("playerName", _player.DisplayName);
             w.WriteBoolean("playing", _snapshot.IsPlaying);
             w.WriteString("artist", _snapshot.Artist);
             w.WriteString("title", _snapshot.Title);

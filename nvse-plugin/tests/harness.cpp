@@ -212,7 +212,7 @@ int main(int argc, char** argv)
 
     const double seconds = (argc > 2 && std::atof(argv[2]) > 0) ? std::atof(argv[2]) : 20.0;
     bool inited = false, on = false, refreshed = false, off = false, presetChanged = false;
-    bool loadStarted = false, retuned = false;
+    bool loadStarted = false, retuned = false, otherPlayer = false, backToSpotify = false;
     while (Now() < seconds)
     {
         const double t = Now();
@@ -220,11 +220,11 @@ int main(int argc, char** argv)
         {
             inited = true;
             Script("init 5");
-            std::printf("[%5.2f] script: PushConfig.gek (15 x MDR:Set)\n", Now());
+            std::printf("[%5.2f] script: PushConfig.gek (16 x MDR:Set)\n", Now());
             const struct { const char* k; float v; } values[] = {
                 {"fx", 1}, {"preset", 1}, {"volume", 100}, {"static", 50}, {"saturation", 50}, {"custom", 0},
                 {"lowpass", 3300}, {"highpass", 280}, {"width", 20}, {"fade", 250}, {"tuning", 1},
-                {"autopause", autoplay ? 1.f : 0.f}, {"autoplay", autoplay ? 1.f : 0.f}, {"pausemenu", 0}, {"trackmsg", 1}};
+                {"autopause", autoplay ? 1.f : 0.f}, {"autoplay", autoplay ? 1.f : 0.f}, {"pausemenu", 0}, {"trackmsg", 1}, {"player", 0}};
             for (const auto& kv : values) ScriptSet(kv.k, kv.v);
         }
         if (!presetChanged && t > 6.0)
@@ -245,6 +245,19 @@ int main(int argc, char** argv)
         {
             refreshed = true;
             Script("refresh");
+        }
+        // MCM > Desktop Player: foobar2000 (not running here -> "STATUS: FOOBAR2000 NOT RUNNING"), then Spotify again
+        if (!otherPlayer && t > 10.0)
+        {
+            otherPlayer = true;
+            std::printf("[%5.2f] script: MCM Desktop Player -> MDR:Set \"player\" 1 (foobar2000)\n", t);
+            ScriptSet("player", 1);
+        }
+        if (!backToSpotify && t > 11.2)
+        {
+            backToSpotify = true;
+            std::printf("[%5.2f] script: MCM Desktop Player -> MDR:Set \"player\" 0 (Spotify)\n", t);
+            ScriptSet("player", 0);
         }
         if (!off && t > 12.0)
         {

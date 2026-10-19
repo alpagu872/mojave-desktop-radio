@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(MojaveDesktopRadio VERSION 0.2.1 LANGUAGES CXX)
+project(MojaveDesktopRadio VERSION 0.2.2 LANGUAGES CXX)
 
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
     message(FATAL_ERROR "Fallout: New Vegas is a 32-bit process. Configure with:  cmake -A Win32 ...  (or use the presets)")

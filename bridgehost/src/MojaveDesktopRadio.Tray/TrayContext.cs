@@ -18,6 +18,7 @@ internal sealed class TrayContext : ApplicationContext
     private readonly ToolStripMenuItem _fxItem = new() { Enabled = false };
     private readonly ToolStripMenuItem _desktopFxItem = new("Desktop FX (without the game)") { CheckOnClick = true };
     private readonly ToolStripMenuItem _presetMenu = new("Desktop FX preset");
+    private readonly ToolStripMenuItem _playerMenu = new("Desktop player");
     private readonly Icon _appIcon;
     private bool _rendering;
 
@@ -52,6 +53,12 @@ internal sealed class TrayContext : ApplicationContext
         }
 
         menu.Items.Add(_presetMenu);
+
+        // Optional: other players than Spotify. While the game runs, MCM > Desktop Player decides.
+        foreach (var profile in PlayerProfiles.BuiltIn)
+            _playerMenu.DropDownItems.Add(PlayerItem(profile.Key, profile.Tested ? profile.DisplayName : profile.DisplayName + " (untested)"));
+        _playerMenu.DropDownItems.Add(PlayerItem(PlayerProfiles.CustomKey, "Custom (settings.json)"));
+        menu.Items.Add(_playerMenu);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Open log folder", null, (_, _) => OpenPath(AppPaths.LogDir));
         menu.Items.Add("Open settings.json", null, (_, _) => OpenPath(AppPaths.SettingsFile));
@@ -85,10 +92,10 @@ internal sealed class TrayContext : ApplicationContext
 
     private void Render(EngineStatus s)
     {
-        _playerItem.Text = "Spotify: " + s.Media.Status switch
+        _playerItem.Text = $"{s.Player.DisplayName}: " + s.Media.Status switch
         {
             PlayerStatus.NotRunning => "not running",
-            PlayerStatus.NoSession => "open (press play once)",
+            PlayerStatus.NoSession => "open, no media session yet (press play once)",
             PlayerStatus.Playing => "playing",
             PlayerStatus.Paused => "paused",
             PlayerStatus.Stopped => "stopped",
@@ -112,8 +119,20 @@ internal sealed class TrayContext : ApplicationContext
         foreach (ToolStripMenuItem item in _presetMenu.DropDownItems)
             item.Checked = item.Tag is RadioPreset p && p == _engine.Settings.DesktopFx.Preset;
 
+        foreach (ToolStripMenuItem item in _playerMenu.DropDownItems)
+            item.Checked = item.Tag is string key && key == s.Player.Key;
+        _playerMenu.Enabled = !s.GameConnected;
+        _playerMenu.Text = s.GameConnected ? "Desktop player (set in MCM while the game runs)" : "Desktop player";
+
         var tip = s.Media.IsPlaying && s.Media.Title.Length > 0 ? $"MDR: {s.Media.Artist} – {s.Media.Title}" : "Mojave Desktop Radio";
         _icon.Text = Truncate(tip, 127);
+    }
+
+    private ToolStripMenuItem PlayerItem(string key, string text)
+    {
+        var item = new ToolStripMenuItem(text) { Tag = key };
+        item.Click += (_, _) => _engine.SelectPlayer(key);
+        return item;
     }
 
     private static string RouteText(EngineStatus s) => s.Route switch

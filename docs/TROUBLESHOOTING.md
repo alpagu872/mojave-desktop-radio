@@ -10,10 +10,11 @@ with MO2 it is in the mod's own folder, e.g. `MO2\mods\Mojave Desktop Radio\Moja
 
 | Command | Shows / does |
 |---|---|
-| `mdr status` | Spotify detection, current track, audio devices, routing state |
+| `mdr status` | player detection (Spotify or the one chosen in MCM), current track, audio devices, routing state |
+| `mdr players` | every supported player: running? visible to Windows media controls? (`--player KEY` works with all commands) |
 | `mdr devices` | output device and the device used for the Radio FX |
-| `mdr toggle` / `next` / `prev` | controls Spotify only (never other players) |
-| `mdr watch 60` | prints every Spotify change for 60 s |
+| `mdr toggle` / `next` / `prev` | controls the selected player only (never other players or browsers) |
+| `mdr watch 60` | prints every player change for 60 s |
 | `mdr loopback-test` | checks that the FX device can be captured (inaudible test tone) |
 | `mdr dsp-test` | offline check of all presets |
 | `mdr pipe-test` | talks to a running BridgeHost |
@@ -27,8 +28,11 @@ with MO2 it is in the mod's own folder, e.g. `MO2\mods\Mojave Desktop Radio\Moja
 | Station missing from the Pip-Boy list | `MojaveDesktopRadio.esp` not active, or merged into a merged patch (not supported). The plugin log shows `station reference XX000802 (mod index N)` when the ESP was found. |
 | Station listed but no panel | UIO missing/outdated; `ui_organizer.log` must list `MojaveDesktopRadio\Panel.xml`. The panel only appears while the station is **tuned** (square marker). |
 | `SIGNAL LOST - BRIDGE OFFLINE` | BridgeHost not running. Install the .NET 8 Desktop Runtime x64. Start `Data\MojaveDesktopRadio\BridgeHost\MojaveDesktopRadio.exe` by hand and look at its log. The plugin log says `BridgeHost launched: <path>` or why not. |
-| `SIGNAL LOST` + `DESKTOP PLAYER NOT FOUND` | Spotify is not running |
+| `SIGNAL LOST` + `STATUS: SPOTIFY NOT RUNNING` | Spotify is not running (with another player chosen in MCM → Desktop Player, its name is shown) |
 | `STATUS: PRESS PLAY IN SPOTIFY ONCE` | Spotify has not played anything since it started; press play once in Spotify |
+| Another player: `… NOT RUNNING` although it runs | its .exe has another name: `mdr players` → use *Custom* with the right `audioProcessNames` (README → Other music players) |
+| Another player: `PRESS PLAY IN … ONCE` stays while it plays | the player does not publish Windows media controls (not in the Windows media overlay; `mdr players` shows `session=-`). Enable its "Windows media controls / SMTC" option or plugin if it has one — otherwise it cannot be supported |
+| Station controls Spotify although I chose another player in the tray | while the game runs, MCM → Desktop Player decides (the tray entry is greyed out then) |
 | Buttons do nothing | look for `media Toggle: …` lines in the BridgeHost log. `NoSession` → see above. No lines at all → the click did not reach the plugin: check `nvse.log` for errors mentioning `MojaveDesktopRadio`. |
 | Corner message "MCM settings not loaded" | a script did not compile (usually after editing the UDFs by hand). `nvse.log` shows `Failed to precompile … MojaveDesktopRadio\…`. Reinstall the mod. |
 | MCM change has no effect | the BridgeHost log must show `game config: … preset=…` after the change. If not, see the line above. |

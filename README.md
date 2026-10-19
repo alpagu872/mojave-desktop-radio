@@ -83,6 +83,45 @@ back on "Default" — also after a crash (on the next start).
   stereo width), fade duration, tuning static.
 * **Behaviour**: pause or mute when the station is left, auto-play, pause-menu behaviour, track messages.
 * **Hotkeys**: play/pause, next, previous, cycle FX — all unassigned by default; scope Pip-Boy only or anywhere.
+* **Desktop Player** (optional): Spotify by default — see [Other music players](#other-music-players-optional).
+
+### Other music players (optional)
+
+**Spotify users can skip this — nothing has to be set.**
+
+The station can control one other desktop player instead of Spotify:
+MCM → Mojave Desktop Radio → **Desktop Player** → *foobar2000*, *MusicBee*, *AIMP*, *WACUP / Winamp* or
+*Custom*. Without the game, the same choice is in the tray icon menu → *Desktop player*. Only the
+selected player is ever controlled; the Pip-Boy names it (e.g. `STATUS: FOOBAR2000 NOT RUNNING`).
+
+These players are **not tested by the author**. A player works only if it publishes Windows media
+controls — play a song in it and press a volume key: the Windows media overlay must show the player
+with title and buttons. Whether it does depends on the player, its version and its settings (some need
+an option or plugin for "Windows media controls" / "SMTC"). To see what Windows reports, run
+`Data\MojaveDesktopRadio\BridgeHost\mdr.exe players` while it plays:
+
+```
+* spotify     Spotify          running=yes  session=Spotify.exe
+  foobar2000  foobar2000       running=yes  session=foobar2000.exe  (untested)
+```
+
+`running=yes` with `session=-` while music plays = the player does not publish media controls; it
+cannot be supported. Radio FX, fades and auto-pause work the same as with Spotify (per process).
+
+**Custom** — for a player that is not listed, or when the names differ: close the game and the
+BridgeHost, then edit `%LOCALAPPDATA%\MojaveDesktopRadio\settings.json`:
+
+```json
+"player": "custom",
+"customPlayerName": "MyPlayer",
+"sessionMatch": [ "MyPlayer" ],
+"audioProcessNames": [ "MyPlayer" ],
+```
+
+`sessionMatch` = part of the session name shown by `mdr players`, `audioProcessNames` = the program's
+.exe name without `.exe`. Then choose MCM → Desktop Player → *Custom (settings.json)*.
+(Settings files from 0.2.1 or older with edited lists are treated as *Custom* automatically — choose
+*Custom* in MCM to keep them.)
 
 ## Compatibility
 
@@ -107,7 +146,8 @@ Mojave Desktop Radio does not use Spotify's servers, APIs or account data and ne
 The Radio FX processes the sound your PC is already playing, in real time, like an equalizer.
 Whether that is allowed by Spotify's terms for your account is your decision — the **Clean** preset
 or *Radio FX: Off* leaves the sound completely untouched. The FX also works with any other program
-you route to the virtual device (e.g. a local music player).
+you route to the virtual device (e.g. a local music player), and the station can control another
+player instead (see [Other music players](#other-music-players-optional)).
 
 ## License and source
 

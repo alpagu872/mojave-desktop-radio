@@ -12,6 +12,7 @@ This catches the classes of problems seen during development:
   * DispatchEventAlt with an MDR event the plugin does not register
   * MCM options using AuxVars that the load script never initialises, or calling unhandled events
   * UIO entries pointing to missing XML files
+  * the MCM "Desktop Player" list, the plugin and the BridgeHost disagreeing on the player order
 
 Usage:  python tools/lint_scripts.py [mod folder]      exit code 0 = clean
 """
@@ -131,6 +132,26 @@ def main() -> int:
                 errors.append(f"{where}: MCM event '{call.get('value')}' has no handler")
             if opt.get("type") == 1 and len(opt.get("strings", [])) < 2:
                 errors.append(f"{where}: a type-1 option needs at least two strings")
+
+    # MCM "Desktop Player" sends an index; the plugin and the BridgeHost decode it with their own lists
+    repo = mod.parent
+    main_cpp = repo / "nvse-plugin" / "src" / "main.cpp"
+    profiles_cs = repo / "bridgehost" / "src" / "MojaveDesktopRadio.Core" / "Media" / "PlayerProfiles.cs"
+    if main_cpp.exists() and profiles_cs.exists():
+        cpp = main_cpp.read_text(encoding="utf-8")
+        m = re.search(r"players\[\]\s*=\s*\{([^}]*)\}", cpp)
+        plugin_order = re.findall(r'"([^"]+)"', m.group(1)) if m else []
+        m = re.search(r"McmOrder\s*=\s*\[([^\]]*)\]", profiles_cs.read_text(encoding="utf-8"))
+        host_order = re.findall(r'"([^"]+)"', m.group(1)) if m else []
+        mcm_players = [opt.get("strings", []) for sub in mcm["submenus"].values() for opt in sub["options"].values()
+                       if any(v.get("auxVar") == "*_MDRPlayer" for v in opt.get("vars", []))]
+        clamp = re.search(r"players\[\(i >= 0 && i <= (\d+)\)", cpp)
+        if not plugin_order or plugin_order != host_order:
+            errors.append(f"player order differs: main.cpp {plugin_order} vs PlayerProfiles.McmOrder {host_order}")
+        if len(mcm_players) != 1 or len(mcm_players[0]) != len(plugin_order):
+            errors.append(f"MCM 'Desktop Player' needs exactly {len(plugin_order)} strings (one per player)")
+        if not clamp or int(clamp.group(1)) != len(plugin_order) - 1:
+            errors.append("main.cpp: the player index clamp does not match the player list")
 
     uio = mod / "UIO" / "Public" / "MojaveDesktopRadio.txt"
     for line in uio.read_text(encoding="utf-8").splitlines():

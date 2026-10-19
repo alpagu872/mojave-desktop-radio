@@ -24,8 +24,9 @@ namespace mdr
         std::string signalConnected = "SIGNAL: CONNECTED";
         std::string signalLost = "SIGNAL LOST";
         std::string signalBridgeOffline = "SIGNAL LOST - BRIDGE OFFLINE";
-        std::string playerNotFound = "DESKTOP PLAYER NOT FOUND";
-        std::string playerNoSession = "STATUS: PRESS PLAY IN SPOTIFY ONCE";
+        // %s = the player's name (SPOTIFY, FOOBAR2000, ... - MCM > Desktop Player)
+        std::string playerNotFound = "STATUS: %s NOT RUNNING";
+        std::string playerNoSession = "STATUS: PRESS PLAY IN %s ONCE";
         std::string statusPlaying = "STATUS: PLAYING";
         std::string statusPaused = "STATUS: PLAYBACK PAUSED";
         std::string statusStopped = "STATUS: STOPPED";
@@ -46,7 +47,7 @@ namespace mdr
         std::string labelFx = "> CHANGE FX MODE";
         std::string nowPlayingFormat = "Now Playing: %s"; // %s = "Artist - Title"
         std::string msgBridgeOffline = "Mojave Desktop Radio: BridgeHost is not running";
-        std::string msgPlayerNotFound = "Mojave Desktop Radio: desktop player not found";
+        std::string msgPlayerNotFound = "Mojave Desktop Radio: %s is not running";
 
         void Load(const std::string& iniPath);
     };

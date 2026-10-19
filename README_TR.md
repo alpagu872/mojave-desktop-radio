@@ -39,6 +39,18 @@ Türkçe yama kullanıyorsanız ek ayar gerekmez: metinlerin kod sayfası Window
   oyun radyosu ile Spotify aynı anda çalmaz.
 * MCM → Mojave Desktop Radio: FX, davranış ve (varsayılanı boş) kısayol ayarları.
 
+### Başka müzik çalarlar (isteğe bağlı)
+
+**Spotify kullanıyorsanız bu bölümü atlayın — hiçbir şey ayarlamanız gerekmez.**
+
+MCM → Mojave Desktop Radio → **Desktop Player** ile istasyon Spotify yerine foobar2000, MusicBee, AIMP,
+WACUP / Winamp ya da *Custom* (kendi tanımınız) kontrol edebilir; oyun kapalıyken aynı seçim tepsi
+simgesinde (*Desktop player*) de var. Bu çalarlar yazar tarafından **test edilmedi**: çalar yalnızca
+Windows medya kontrollerinde görünüyorsa çalışır (şarkı çalarken ses tuşuna basın, Windows'un medya
+penceresinde çalar adı ve düğmeler görünmeli). Kontrol için çalar açıkken
+`Data\MojaveDesktopRadio\BridgeHost\mdr.exe players` çalıştırın. Ayrıntılar ve *Custom* ayarı:
+[README.md → Other music players](README.md#other-music-players-optional).
+
 ## Kaldırma
 
 Tepsi simgesi → **Exit (restores audio routing)**, ardından modu kapatın. Save'ler etkilenmez.

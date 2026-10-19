@@ -1,7 +1,7 @@
 {
  "modName": "MojaveDesktopRadio",
  "displayName": "Mojave Desktop Radio",
- "description": "Pip-Boy radio station that controls the Spotify desktop app, with old-radio sound effects.",
+ "description": "Pip-Boy radio station that controls the Spotify desktop app (optionally another desktop player), with old-radio sound effects.",
  "saveFile": "MojaveDesktopRadio.ini",
  "minMCMVersion": 1.3,
  "minModVersion": 2.0,
@@ -215,6 +215,24 @@
      "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRKeyScope", "key": 0, "default": 0.0, "configINI": "Keys:iScope" } ],
      "strings": [ "Pip-Boy Radio Tab", "Anywhere" ],
      "call": { "type": "event", "value": "MDR_OnAssignKeys" }
+    }
+   }
+  },
+  "4": {
+   "listTitle": "Desktop Player",
+   "pageTitle": "Desktop Player (optional)",
+   "columns": 1,
+   "enable": 1,
+   "active": 1,
+   "options": {
+    "1": {
+     "title": "Desktop Player",
+     "type": 1,
+     "enable": 1,
+     "mouse": "Spotify users: nothing to change here. Optional, not tested by the author: foobar2000, MusicBee, AIMP, WACUP / Winamp - they work only if they appear in the Windows media controls (volume overlay) with title and buttons. Custom = your own entry in settings.json (AppData, Local, MojaveDesktopRadio). See README: Other players.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRPlayer", "key": 0, "default": 0.0, "configINI": "Player:iPlayer" } ],
+     "strings": [ "Spotify", "foobar2000", "MusicBee", "AIMP", "WACUP / Winamp", "Custom (settings.json)" ],
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
     }
    }
   }

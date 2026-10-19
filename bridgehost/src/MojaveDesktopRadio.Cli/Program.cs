@@ -22,6 +22,14 @@ internal static class Program
         Console.OutputEncoding = Encoding.UTF8;
         Log.Init("mdr-cli.log", echoToConsole: false);
         var settings = BridgeSettings.Load();
+        // --player KEY: use another player for this run only (settings.json is not changed)
+        var pi = Array.FindIndex(args, a => a.Equals("--player", StringComparison.OrdinalIgnoreCase));
+        if (pi >= 0 && pi + 1 < args.Length)
+        {
+            settings.Player = args[pi + 1];
+            args = args.Where((_, i) => i != pi && i != pi + 1).ToArray();
+        }
+
         var cmd = args.Length > 0 ? args[0].ToLowerInvariant() : "help";
 
         try
@@ -29,6 +37,7 @@ internal static class Program
             return cmd switch
             {
                 "status" => Status(settings),
+                "players" => Players(settings),
                 "play" => Media(settings, MediaCommand.Play),
                 "pause" => Media(settings, MediaCommand.Pause),
                 "toggle" => Media(settings, MediaCommand.Toggle),
@@ -58,32 +67,66 @@ internal static class Program
         Console.WriteLine("""
             mdr — Mojave Desktop Radio diagnostics
 
-              status                 Spotify detection, media sessions, audio devices, routing support
-              play|pause|toggle      Send a command to the Spotify session only
+              status                 Player detection, media sessions, audio devices, routing support
+              players                Which supported players are running / visible to Windows media controls
+              play|pause|toggle      Send a command to the selected player's session only
               next|prev
-              watch [seconds]        Print every state change (close / reopen Spotify to test recovery)
+              watch [seconds]        Print every state change (close / reopen the player to test recovery)
               devices                List render endpoints and the chosen route/output devices
               dsp-test               Offline check of all presets (filters, levels, NaN/clipping)
               loopback-test          Plays a test tone into the route device and captures it back (inaudible)
               dsp-render <in.wav> <out.wav> [preset]   Process one of YOUR local files offline
               pipe-test [--as-game]  Talk to a running BridgeHost through the named pipe
-              route-test --yes       Route Spotify to the route device for 5 s, then restore (Spotify must be playing)
+              route-test --yes       Route the player to the route device for 5 s, then restore (it must be playing)
+
+            Options: --player KEY    spotify (default) foobar2000 musicbee aimp wacup custom — this run only
             """);
         return 0;
     }
 
     // ---- stage 2: media -------------------------------------------------------------------------
 
-    private static SpotifyMediaSource NewMedia(BridgeSettings s) => new(s.SessionMatch, s.AudioProcessNames);
+    private static DesktopMediaSource NewMedia(BridgeSettings s)
+    {
+        var p = s.ResolvePlayer();
+        return new DesktopMediaSource(p.SessionMatch, p.ProcessNames);
+    }
+
+    private static IReadOnlyList<string> Procs(BridgeSettings s) => s.ResolvePlayer().ProcessNames;
+
+    private static int Players(BridgeSettings settings)
+    {
+        var active = settings.ResolvePlayer();
+        var probe = new DesktopMediaSource([], []);
+        var all = probe.ListAllSessionIds();
+        Console.WriteLine($"Windows media sessions ({all.Count}): {(all.Count == 0 ? "-" : string.Join(", ", all))}");
+        Console.WriteLine();
+        var profiles = PlayerProfiles.BuiltIn.Append(settings.ResolvePlayer(PlayerProfiles.CustomKey));
+        foreach (var p in profiles)
+        {
+            var media = new DesktopMediaSource(p.SessionMatch, p.ProcessNames);
+            var snap = media.Refresh();
+            var mark = p.Key == active.Key ? "*" : " ";
+            Console.WriteLine($"{mark} {p.Key,-11} {p.DisplayName,-16} running={(snap.Status != PlayerStatus.NotRunning ? "yes" : "no "),-4}" +
+                              $" session={(snap.HasSession ? snap.AppId : "-")}{(p.Tested ? "" : "  (untested)")}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("* = selected. A player works only if it is running AND has a session (play something once).");
+        Console.WriteLine("No session while it plays: the player does not publish Windows media controls (see TROUBLESHOOTING).");
+        return 0;
+    }
 
     private static int Status(BridgeSettings settings)
     {
         var media = NewMedia(settings);
-        Console.WriteLine($"Spotify process running : {media.IsProcessRunning()}");
+        var player = settings.ResolvePlayer();
+        Console.WriteLine($"Selected player         : {player.DisplayName} [{player.Key}]{(player.Tested ? "" : " (untested)")}");
+        Console.WriteLine($"Player process running  : {media.IsProcessRunning()}");
         var all = media.ListAllSessionIds();
         Console.WriteLine($"GSMTC sessions ({all.Count}): {(all.Count == 0 ? "-" : string.Join(", ", all))}");
         var snap = media.Refresh();
-        Console.WriteLine($"Spotify session         : {snap.Status} ({snap.AppId ?? "none"})");
+        Console.WriteLine($"Player session          : {snap.Status} ({snap.AppId ?? "none"})");
         if (snap.HasSession)
         {
             Console.WriteLine($"  artist : {snap.Artist}");
@@ -96,16 +139,16 @@ internal static class Program
         Devices(settings);
 
         using var devices = new AudioDevices();
-        var sessions = devices.FindSessions(settings.AudioProcessNames);
-        Console.WriteLine($"Spotify audio sessions ({sessions.Count}):");
+        var sessions = devices.FindSessions(Procs(settings));
+        Console.WriteLine($"Player audio sessions ({sessions.Count}):");
         foreach (var s in sessions)
             Console.WriteLine($"  pid {s.ProcessId} on '{s.DeviceName}' vol={s.Volume:0.00} muted={s.Muted} state={s.State}");
 
         var routing = new AppAudioRouting();
         Console.WriteLine($"Automatic per-app routing supported: {routing.IsSupported}{(routing.LastError is { } e ? $" ({e})" : "")}");
         Console.WriteLine($"Pending routing restore marker     : {routing.HasPendingRestore}");
-        foreach (var pid in AudioDevices.GetProcessIds(settings.AudioProcessNames).Take(1))
-            Console.WriteLine($"Persisted device for Spotify       : {routing.GetRoutedDevice(pid) ?? "Default"}");
+        foreach (var pid in AudioDevices.GetProcessIds(Procs(settings)).Take(1))
+            Console.WriteLine($"Persisted device for the player    : {routing.GetRoutedDevice(pid) ?? "Default"}");
         return 0;
     }
 
@@ -388,7 +431,7 @@ internal static class Program
 
         Measure("media.Refresh", () => media.Refresh());
         Measure("process check", () => media.IsProcessRunning());
-        Measure("FindSessions (all devices)", () => devices.FindSessions(settings.AudioProcessNames));
+        Measure("FindSessions (all devices)", () => devices.FindSessions(Procs(settings)));
         Measure("FindOutputDevice", () => devices.FindOutputDevice(settings, null));
         Measure("FindRouteDevice", () => devices.FindRouteDevice(settings, null));
         return 0;
@@ -401,7 +444,7 @@ internal static class Program
         var route = devices.FindRouteDevice(settings, output?.ID);
         if (route is null) { Console.WriteLine("no route device"); return 1; }
         Console.WriteLine($"route device id: {route.ID}");
-        foreach (var (pid, name, set, restore) in new AppAudioRouting().Probe(settings.AudioProcessNames, route.ID))
+        foreach (var (pid, name, set, restore) in new AppAudioRouting().Probe(Procs(settings), route.ID))
             Console.WriteLine($"  pid {pid,6} {name,-40} set=0x{set:X8} restore=0x{restore:X8}");
         return 0;
     }
@@ -410,7 +453,7 @@ internal static class Program
     {
         if (!confirmed)
         {
-            Console.WriteLine("route-test changes Spotify's output device for 5 seconds and restores it. Run with --yes.");
+            Console.WriteLine("route-test changes the player's output device for 5 seconds and restores it. Run with --yes.");
             return 1;
         }
 
@@ -419,8 +462,8 @@ internal static class Program
         var route = devices.FindRouteDevice(settings, output?.ID);
         if (route is null) { Console.WriteLine("no route device"); return 1; }
         var routing = new AppAudioRouting();
-        Console.WriteLine($"routing Spotify → {route.FriendlyName}");
-        if (!routing.Route(settings.AudioProcessNames, route.ID))
+        Console.WriteLine($"routing {settings.ResolvePlayer().DisplayName} → {route.FriendlyName}");
+        if (!routing.Route(Procs(settings), route.ID))
         {
             Console.WriteLine($"FAILED: {routing.LastError}");
             return 1;
@@ -429,11 +472,11 @@ internal static class Program
         for (var i = 0; i < 5; i++)
         {
             Thread.Sleep(1000);
-            var where = devices.FindSessions(settings.AudioProcessNames).Select(s => $"{s.DeviceName}({s.State})");
+            var where = devices.FindSessions(Procs(settings)).Select(s => $"{s.DeviceName}({s.State})");
             Console.WriteLine($"  t+{i + 1}s sessions: {string.Join(", ", where)}");
         }
 
-        var restored = routing.Restore(settings.AudioProcessNames);
+        var restored = routing.Restore(Procs(settings));
         Console.WriteLine($"restored: {restored}");
         return restored ? 0 : 1;
     }

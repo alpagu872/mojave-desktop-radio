@@ -5,7 +5,8 @@
 .DESCRIPTION
   * Refuses to run while Fallout or the BridgeHost is running (DLL/EXE would be locked, and the
     BridgeHost must restore audio routing itself).
-  * Keeps the user's MCM settings: Config\MojaveDesktopRadio.ini is never overwritten if it exists.
+  * Keeps the user's MCM settings: Config\MojaveDesktopRadio.ini is never overwritten if it exists
+    (sections added by a newer version are appended with their defaults).
   * Removes files of earlier versions that are no longer part of the package.
 
 .EXAMPLE
@@ -36,7 +37,19 @@ Get-ChildItem $ModFolder -Recurse -File | ForEach-Object {
 
 foreach ($rel in $new) {
     $target = Join-Path $ModFolder $rel
-    if ($rel -eq $keep -and (Test-Path $target)) { Write-Host "keep    $rel (your MCM settings)"; continue }
+    if ($rel -eq $keep -and (Test-Path $target)) {
+        # keep the user's values, but add sections introduced by newer versions (e.g. [Player] in 0.2.2)
+        $mine = Get-Content $target -Raw
+        $added = @()
+        foreach ($m in [regex]::Matches((Get-Content (Join-Path $data $rel) -Raw), '(?ms)^\[([^\]]+)\].*?(?=^\[|\z)')) {
+            if ($mine -notmatch "(?m)^\[$([regex]::Escape($m.Groups[1].Value))\]") { $added += $m.Value.TrimEnd() }
+        }
+        if ($added) {
+            [IO.File]::WriteAllText($target, $mine.TrimEnd() + "`r`n`r`n" + ($added -join "`r`n`r`n") + "`r`n", (New-Object Text.UTF8Encoding $false))
+            Write-Host "keep    $rel (your MCM settings; added $($added.Count) new section(s))"
+        } else { Write-Host "keep    $rel (your MCM settings)" }
+        continue
+    }
     New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
     Copy-Item (Join-Path $data $rel) $target -Force
 }
