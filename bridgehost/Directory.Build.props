@@ -12,7 +12,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <InvariantGlobalization>false</InvariantGlobalization>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <!-- reproducible binaries: same source => same bytes (paths mapped, no timestamps) -->
+    <!-- deterministic binaries: same source + same SDK (global.json) => same bytes (paths mapped, no timestamps) -->
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     <Copyright>Mojave Desktop Radio</Copyright>

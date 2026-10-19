@@ -112,8 +112,10 @@ you route to the virtual device (e.g. a local music player).
 ## License and source
 
 MIT — see [LICENSE](LICENSE). Source: https://github.com/alpagu872/mojave-desktop-radio.
-Every release archive is built by GitHub Actions from this source ([build.yml](.github/workflows/build.yml));
-the binaries are reproducible and `MojaveDesktopRadio\Docs\SHA256SUMS.txt` lists the hash of every file.
+Release archives are built by GitHub Actions from this source ([build.yml](.github/workflows/build.yml))
+and carry a signed build-provenance attestation — verify a download with
+`gh attestation verify MojaveDesktopRadio-<version>.zip --repo alpagu872/mojave-desktop-radio`.
+`MojaveDesktopRadio\Docs\SHA256SUMS.txt` lists the hash of every file in the archive.
 The executables are not code-signed, so a few antivirus engines may report a generic "suspicious" verdict.
 
 ## For developers

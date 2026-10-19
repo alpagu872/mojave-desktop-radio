@@ -29,7 +29,7 @@ add_library(MojaveDesktopRadio SHARED
 )
 
 target_compile_definitions(MojaveDesktopRadio PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS)
-# /Brepro: reproducible output (no timestamps), so anyone building this source gets a byte-identical DLL
+# /Brepro: no timestamps in the output, so rebuilding with the same MSVC version gives a byte-identical DLL
 target_compile_options(MojaveDesktopRadio PRIVATE /W4 /permissive- /EHsc /utf-8 /Zi /wd4100 /Brepro)
 target_link_options(MojaveDesktopRadio PRIVATE /DEBUG /Brepro /PDBALTPATH:MojaveDesktopRadio.pdb $<$<CONFIG:Release>:/OPT:REF /OPT:ICF>)
 set_target_properties(MojaveDesktopRadio PROPERTIES OUTPUT_NAME "MojaveDesktopRadio")

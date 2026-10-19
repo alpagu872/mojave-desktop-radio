@@ -1,8 +1,11 @@
 name: build
 
 # Builds the complete mod from source on a clean GitHub-hosted Windows machine:
-# script lint, unit tests, BridgeHost publish, 32-bit NVSE plugin, ESP generation/validation,
-# and uploads the release archive + SHA256SUMS. Binaries are reproducible (/Brepro, Deterministic).
+# script lint, unit tests, BridgeHost publish, 32-bit NVSE plugin, ESP generation/validation.
+# The release archive gets a signed build-provenance attestation, so anyone can verify that it was
+# produced by this workflow from this repository:
+#   gh attestation verify MojaveDesktopRadio-<version>.zip --repo alpagu872/mojave-desktop-radio
+# Pushing a tag "v<version>" also publishes a GitHub Release with the archive and SHA256SUMS.txt.
 
 on:
   push:
@@ -10,6 +13,11 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: write       # create the release on tags
+  id-token: write       # sign the attestation
+  attestations: write
 
 jobs:
   package:
@@ -19,7 +27,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          global-json-file: global.json
 
       - uses: actions/setup-python@v5
         with:
@@ -29,9 +37,24 @@ jobs:
         shell: pwsh
         run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/package.ps1
 
+      - name: Attest build provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/MojaveDesktopRadio-*.zip
+
       - uses: actions/upload-artifact@v4
         with:
           name: MojaveDesktopRadio
           path: |
             dist/MojaveDesktopRadio-*.zip
             dist/SHA256SUMS.txt
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = "Built by GitHub Actions from commit ${{ github.sha }}.`n`nVerify: gh attestation verify <zip> --repo ${{ github.repository }}`n`nSee CHANGELOG.md for changes."
+          gh release create "${{ github.ref_name }}" (Get-ChildItem dist/MojaveDesktopRadio-*.zip).FullName dist/SHA256SUMS.txt --title "Mojave Desktop Radio ${{ github.ref_name }}" --notes $notes
