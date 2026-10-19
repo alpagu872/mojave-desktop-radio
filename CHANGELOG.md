@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.1
+
+**Fixes**
+* From the second save load of a game session on (e.g. after dying), the Pip-Boy panel froze with old
+  values, MCM changes were ignored and corner messages stopped, while the buttons still worked.
+  Cause: xNVSE removes every handler registered with `SetEventHandlerAlt` when a save is loaded, and the
+  load script registered them only once per session. They are now registered on every load
+  (`tools/lint_scripts.py` rejects the old pattern).
+* The panel is additionally refreshed 4x per second (written only when something changed or the panel
+  is stale) and never during a load, so it always matches the real radio state — after dying the game
+  switches the radio off, tune Mojave Desktop Radio again.
+* The plugin log now states after every load whether the Pip-Boy radio is on our station.
+* Requires `MojaveDesktopRadio.dll` v3 (the scripts check this).
+
 ## 0.2.0
 
 **Fixes**

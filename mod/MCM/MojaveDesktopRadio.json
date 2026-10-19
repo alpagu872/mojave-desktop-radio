@@ -7,7 +7,7 @@
  "minModVersion": 2.0,
  "requirements": [
   { "type": "file", "file": "NVSE/plugins/scripts/ln_MojaveDesktopRadio.txt" },
-  { "type": "dll", "file": "MojaveDesktopRadio", "version": 2 }
+  { "type": "dll", "file": "MojaveDesktopRadio", "version": 3 }
  ],
  "submenus": {
   "1": {

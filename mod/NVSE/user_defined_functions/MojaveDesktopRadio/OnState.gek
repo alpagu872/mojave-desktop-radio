@@ -1,18 +1,23 @@
-begin Function {int iActive, int iPlaying, string_var sSignal, string_var sStatus, string_var sArtist, string_var sTrack, string_var sFx, string_var sPlay, string_var sNext, string_var sPrev, string_var sFxBtn}
-	; Plugin -> Pip-Boy panel. The panel copies these MapMenu root traits (Menus\Prefabs\MojaveDesktopRadio\Traits.xml).
-	; All texts come from Data\NVSE\Plugins\MojaveDesktopRadio.ini [Text] (translatable, Windows-1254).
+begin Function {int iActive, int iPlaying, int iRev, string_var sSignal, string_var sStatus, string_var sArtist, string_var sTrack, string_var sFx, string_var sPlay, string_var sNext, string_var sPrev, string_var sFxBtn}
+	; Plugin -> Pip-Boy panel, sent on every change and 4x per second.
+	; The panel's traits (Menus\Prefabs\MojaveDesktopRadio\Traits.xml) are only written when the
+	; panel's revision differs, i.e. after a change or when the panel is stale (e.g. after a load).
+	; All texts come from Data\NVSE\Plugins\MojaveDesktopRadio.ini [Text].
 	if eval (MenuMode 1023)
-		SetUIFloat "MapMenu/_MDR_Active" iActive
-		SetUIFloat "MapMenu/_MDR_Playing" iPlaying
-		SetUIStringEx "MapMenu/_MDR_Signal" "%z" sSignal
-		SetUIStringEx "MapMenu/_MDR_Status" "%z" sStatus
-		SetUIStringEx "MapMenu/_MDR_Artist" "%z" sArtist
-		SetUIStringEx "MapMenu/_MDR_Track" "%z" sTrack
-		SetUIStringEx "MapMenu/_MDR_Fx" "%z" sFx
-		SetUIStringEx "MapMenu/_MDR_PlayLabel" "%z" sPlay
-		SetUIStringEx "MapMenu/_MDR_NextLabel" "%z" sNext
-		SetUIStringEx "MapMenu/_MDR_PrevLabel" "%z" sPrev
-		SetUIStringEx "MapMenu/_MDR_FxLabel" "%z" sFxBtn
+		if eval (GetUIFloat "MapMenu/_MDR_Rev") != iRev
+			SetUIFloat "MapMenu/_MDR_Rev" iRev
+			SetUIFloat "MapMenu/_MDR_Active" iActive
+			SetUIFloat "MapMenu/_MDR_Playing" iPlaying
+			SetUIStringEx "MapMenu/_MDR_Signal" "%z" sSignal
+			SetUIStringEx "MapMenu/_MDR_Status" "%z" sStatus
+			SetUIStringEx "MapMenu/_MDR_Artist" "%z" sArtist
+			SetUIStringEx "MapMenu/_MDR_Track" "%z" sTrack
+			SetUIStringEx "MapMenu/_MDR_Fx" "%z" sFx
+			SetUIStringEx "MapMenu/_MDR_PlayLabel" "%z" sPlay
+			SetUIStringEx "MapMenu/_MDR_NextLabel" "%z" sNext
+			SetUIStringEx "MapMenu/_MDR_PrevLabel" "%z" sPrev
+			SetUIStringEx "MapMenu/_MDR_FxLabel" "%z" sFxBtn
+		endif
 	endif
 	sv_Destruct sSignal sStatus sArtist sTrack sFx sPlay sNext sPrev sFxBtn
 end

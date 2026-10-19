@@ -1,5 +1,6 @@
 <!-- Mojave Desktop Radio: MapMenu root traits (inserted by UIO, no vanilla/VUI+ file is replaced).
      Written at runtime by NVSE\user_defined_functions\MojaveDesktopRadio\OnState.gek, read by Panel.xml. -->
+<_MDR_Rev> 0 </_MDR_Rev>
 <_MDR_Active> 0 </_MDR_Active>
 <_MDR_Playing> 0 </_MDR_Playing>
 <_MDR_Signal> SIGNAL LOST </_MDR_Signal>

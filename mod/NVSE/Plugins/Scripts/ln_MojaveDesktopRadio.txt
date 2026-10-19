@@ -7,8 +7,8 @@
 ; Keep script lines short and simple - run tools\lint_scripts.py after editing.
 ;   "MDR:State", "MDR:Notify"                 plugin -> script   (handled by the UDFs below)
 
-if eval (GetPluginVersion "MojaveDesktopRadio") < 2
-	MessageBoxEx "Mojave Desktop Radio: MojaveDesktopRadio.dll is missing or outdated (need v2).%rSee MojaveDesktopRadio.log in the game folder."
+if eval (GetPluginVersion "MojaveDesktopRadio") < 3
+	MessageBoxEx "Mojave Desktop Radio: MojaveDesktopRadio.dll is missing or outdated (need v3).%rSee MojaveDesktopRadio.log in the game folder."
 	return
 endif
 if eval (GetPluginVersion "JIP LN NVSE") < 1
@@ -47,16 +47,21 @@ Player.AuxVarSetFlt "*_MDRKeyFx" (GetINIFloat_Cached "Keys:iCycleFx" "MojaveDesk
 Player.AuxVarSetFlt "*_MDRKeyScope" (GetINIFloat_Cached "Keys:iScope" "MojaveDesktopRadio.ini" 0) 0
 
 ; ---- tell the plugin which reference is our station (the mod index changes with the load order) ----
+; ---- xNVSE event handlers: EVERY load ----
+; xNVSE removes all handlers registered with SetEventHandlerAlt whenever a save is loaded
+; (EventCallback::flushOnLoad), so they must be registered again each time - never inside the
+; once-per-session block below. (Registering them only once broke the panel and MCM after the 2nd load.)
+SetEventHandlerAlt "MDR:State" (CompileScript "MojaveDesktopRadio\OnState.gek")
+SetEventHandlerAlt "MDR:Notify" (CompileScript "MojaveDesktopRadio\OnNotify.gek")
+SetEventHandlerAlt "MDR_OnConfigChanged" (CompileScript "MojaveDesktopRadio\PushConfig.gek")
+SetEventHandlerAlt "MDR_OnAssignKeys" (CompileScript "MojaveDesktopRadio\AssignKeys.gek")
+
 DispatchEventAlt "MDR:Cmd" (sv_Construct "init %g" (GetModIndex "MojaveDesktopRadio.esp"))
 Call (CompileScript "MojaveDesktopRadio\PushConfig.gek")
 
-; ---- event handlers: registered once per game session (they survive save loads) ----
+; ---- JIP menu handlers: once per game session (JIP keeps them across save loads) ----
 if eval (Player.AuxVarGetFlt "*_MDRInit") == 0
 	Player.AuxVarSetFlt "*_MDRInit" 1 0
-	SetEventHandlerAlt "MDR:State" (CompileScript "MojaveDesktopRadio\OnState.gek")
-	SetEventHandlerAlt "MDR:Notify" (CompileScript "MojaveDesktopRadio\OnNotify.gek")
-	SetEventHandlerAlt "MDR_OnConfigChanged" (CompileScript "MojaveDesktopRadio\PushConfig.gek")
-	SetEventHandlerAlt "MDR_OnAssignKeys" (CompileScript "MojaveDesktopRadio\AssignKeys.gek")
 	; real Pip-Boy buttons: every target tile inside the injected panel (see Menus\Prefabs\MojaveDesktopRadio\Panel.xml)
 	SetOnMenuClickEventHandler (CompileScript "MojaveDesktopRadio\OnClick.gek") 1 "MapMenu\GLOW_BRANCH\MM_MainRect\MDR_Panel"
 	SetOnMenuOpenEventHandler (CompileScript "MojaveDesktopRadio\OnMapMenuOpen.gek") 1 1023

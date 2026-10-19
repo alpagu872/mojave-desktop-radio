@@ -71,8 +71,12 @@ def check_script(path: Path, errors: list, info: dict):
                 errors.append(f"{where}: {why}")
 
         word = re.split(r"[\s{(]", line.lower(), 1)[0]
+        # xNVSE drops SetEventHandlerAlt handlers on every save load: they must not sit inside the
+        # once-per-session "*_MDRInit" block (that broke the panel and MCM after the 2nd load in 0.2.0)
+        if re.match(r"SetEventHandlerAlt\b", line, re.I) and any(g for _, _, g in stack):
+            errors.append(f"{where}: SetEventHandlerAlt inside the once-per-session block - xNVSE removes it on the next load")
         if word in openers:
-            stack.append((word, n))
+            stack.append((word, n, word == "if" and "_mdrinit" in line.lower()))
         elif word in closers:
             want = closers[word]
             if not stack or (stack[-1][0] not in (want if isinstance(want, tuple) else (want,))):
@@ -89,7 +93,7 @@ def check_script(path: Path, errors: list, info: dict):
             info["handled"].add(ev)
         for var in re.findall(r'AuxVarSetFlt\s+"(\*_MDR[^"]+)"', line):
             info["auxvars"].add(var)
-    for word, n in stack:
+    for word, n, _ in stack:
         errors.append(f"{path.name}:{n}: '{word}' is never closed")
 
 

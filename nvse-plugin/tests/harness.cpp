@@ -23,6 +23,9 @@ namespace
     NVSEMessagingInterface::EventCallback g_listener = nullptr;
     std::map<std::string, NVSEEventManagerInterface::NativeEventHandler> g_native;
     ULONGLONG g_t0 = 0;
+    int g_stateDispatches = 0;
+    int g_dispatchesDuringLoad = 0;
+    bool g_inLoad = false;
 
     double Now() { return (GetTickCount64() - g_t0) / 1000.0; }
 
@@ -65,10 +68,18 @@ namespace
         {
             int active = static_cast<int>(reinterpret_cast<intptr_t>(va_arg(a, void*)));
             int playing = static_cast<int>(reinterpret_cast<intptr_t>(va_arg(a, void*)));
+            int rev = static_cast<int>(reinterpret_cast<intptr_t>(va_arg(a, void*)));
             std::string s[9];
             for (auto& p : s) p = FromGame(static_cast<const char*>(va_arg(a, void*)));
-            std::printf("[%5.2f] MDR:State active=%d playing=%d | %s | %s | %s | %s | %s | %s | %s | %s | %s\n", Now(), active, playing,
-                s[0].c_str(), s[1].c_str(), s[2].c_str(), s[3].c_str(), s[4].c_str(), s[5].c_str(), s[6].c_str(), s[7].c_str(), s[8].c_str());
+            ++g_stateDispatches;
+            if (g_inLoad) ++g_dispatchesDuringLoad;
+            static int s_lastRev = -1;
+            if (rev != s_lastRev) // the panel script only writes when the revision changes; print the same
+            {
+                s_lastRev = rev;
+                std::printf("[%5.2f] MDR:State rev=%d active=%d playing=%d | %s | %s | %s | %s | %s | %s\n", Now(), rev, active, playing,
+                    s[0].c_str(), s[1].c_str(), s[2].c_str(), s[3].c_str(), s[4].c_str(), s[5].c_str());
+            }
         }
         else if (std::string(name) == "MDR:Notify")
         {
@@ -199,8 +210,9 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    const double seconds = (argc > 2 && std::atof(argv[2]) > 0) ? std::atof(argv[2]) : 16.0;
+    const double seconds = (argc > 2 && std::atof(argv[2]) > 0) ? std::atof(argv[2]) : 20.0;
     bool inited = false, on = false, refreshed = false, off = false, presetChanged = false;
+    bool loadStarted = false, retuned = false;
     while (Now() < seconds)
     {
         const double t = Now();
@@ -238,13 +250,34 @@ int main(int argc, char** argv)
         {
             off = true;
             *slot = nullptr;
-            std::printf("[%5.2f] game: Pip-Boy radio turned off\n", t);
+            std::printf("[%5.2f] game: Pip-Boy radio turned off (e.g. the player died)\n", t);
+        }
+        // save load after death: PreLoadGame, ~1 s of loading frames, the ln_ script ("init"), PostLoadGame
+        if (!loadStarted && t > 13.0)
+        {
+            loadStarted = g_inLoad = true;
+            std::printf("[%5.2f] game: loading a save (radio stays off in that save)\n", t);
+            Message(NVSEMessagingInterface::kMessage_PreLoadGame);
+        }
+        if (g_inLoad && t > 14.0)
+        {
+            Script("init 5");
+            g_inLoad = false;
+            Message(NVSEMessagingInterface::kMessage_PostLoadGame);
+            std::printf("[%5.2f] game: load finished\n", t);
+        }
+        if (!retuned && t > 16.0)
+        {
+            retuned = true;
+            *slot = radioEntry;
+            std::printf("[%5.2f] game: player tunes Mojave Desktop Radio again\n", t);
         }
         Message(NVSEMessagingInterface::kMessage_MainGameLoop);
         Sleep(16);
     }
 
     Message(NVSEMessagingInterface::kMessage_ExitGame);
-    std::printf("[%5.2f] exit\n", Now());
-    return 0;
+    std::printf("[%5.2f] exit — MDR:State dispatched %d times (%.1f/s), %d during the load\n", Now(), g_stateDispatches,
+        g_stateDispatches / seconds, g_dispatchesDuringLoad);
+    return g_dispatchesDuringLoad == 0 ? 0 : 3;
 }

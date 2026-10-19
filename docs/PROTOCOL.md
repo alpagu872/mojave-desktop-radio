@@ -8,7 +8,7 @@ The plugin registers no script commands, so it needs no opcode range and cannot 
 |---|---|---|
 | `MDR:Cmd` | script → plugin | 1 string: `init <modIndex>`, `click <TileName>`, `toggle`, `play`, `pause`, `next`, `prev`, `refresh`, `menupause 0/1`, (legacy) `config k=v;…` |
 | `MDR:Set` | script → plugin | string key, number value: `fx preset volume static saturation custom lowpass highpass width fade tuning autopause autoplay pausemenu trackmsg` (MCM units: 0/1 toggles, preset 0–3, percentages 0–100, Hz, ms). Values received in one frame are sent to the BridgeHost as one `config` message. |
-| `MDR:State` | plugin → script | int active, int playing, 9 strings: signal, status, artist, track, fx, playLabel, nextLabel, prevLabel, fxLabel — in the game's code page |
+| `MDR:State` | plugin → script | int active, int playing, int revision, 9 strings: signal, status, artist, track, fx, playLabel, nextLabel, prevLabel, fxLabel — in the game's code page. Sent on every change and 4x per second (never during a load); `OnState.gek` writes the panel only when its `_MDR_Rev` differs from `revision`. |
 | `MDR:Notify` | plugin → script | 1 string corner message |
 | `MDR_OnConfigChanged`, `MDR_OnAssignKeys` | MCM → script | user events dispatched by MCM Extender |
 

@@ -24,8 +24,8 @@
 
 namespace
 {
-    constexpr UInt32 kPluginVersion = 2; // GetPluginVersion "MojaveDesktopRadio"
-    constexpr const char* kPluginVersionString = "0.2.0";
+    constexpr UInt32 kPluginVersion = 3; // GetPluginVersion "MojaveDesktopRadio" (3: MDR:State has a revision argument)
+    constexpr const char* kPluginVersionString = "0.2.1";
     // RadioEntry* at 0x011DD42C (1.4.0.525), see JIP LN GameGlobals::PipboyRadio; configurable only for the test harness.
     constexpr UInt32 kRefIdOffset = 0x0C; // TESForm::refID
 
@@ -69,6 +69,7 @@ namespace
 
     std::string g_lastTrackKey;
     bool g_uiDirty = true;
+    int g_uiRevision = 0;
     ULONGLONG g_lastUiDispatch = 0;
 
     // bridge auto-launch
@@ -188,9 +189,21 @@ namespace
 
         playLabel = g_bridge.playing ? g_cfg.labelPause : g_cfg.labelPlay;
 
+        // The revision changes whenever the content does; OnState.gek only writes the panel when the
+        // panel's own revision differs (a change, or a stale panel), so the periodic repaint is free.
+        static std::string s_lastContent;
+        std::string content = signal + '\x1f' + status + '\x1f' + artist + '\x1f' + track + '\x1f' + fx + '\x1f' +
+                              playLabel + (g_stationActive ? "\x1f" "1" : "\x1f" "0") + (g_bridge.playing ? "1" : "0");
+        if (content != s_lastContent)
+        {
+            s_lastContent = std::move(content);
+            if (++g_uiRevision > 1000000) g_uiRevision = 1; // stays exact as a script float
+        }
+
         g_events->DispatchEvent("MDR:State", nullptr,
             reinterpret_cast<void*>(static_cast<intptr_t>(g_stationActive ? 1 : 0)),
             reinterpret_cast<void*>(static_cast<intptr_t>(g_bridge.playing ? 1 : 0)),
+            reinterpret_cast<void*>(static_cast<intptr_t>(g_uiRevision)),
             signal.c_str(), status.c_str(), artist.c_str(), track.c_str(), fx.c_str(), playLabel.c_str(),
             g_cfg.labelNext.c_str(), g_cfg.labelPrev.c_str(), g_cfg.labelFx.c_str());
 
@@ -449,7 +462,9 @@ namespace
             if (!g_firstLoadTick) g_firstLoadTick = GetTickCount64();
             if (!g_initTick) g_initTick = GetTickCount64();
             g_uiDirty = true;
-            mdr::log::Info("station reference %08X (mod index %d)", g_stationRefId, modIndex);
+            const UInt32 tuned = ReadPipboyRadioRefId(g_cfg.pipboyRadioAddress);
+            mdr::log::Info("station reference %08X (mod index %d); Pip-Boy radio after load: %s", g_stationRefId, modIndex,
+                tuned == 0 ? "off" : tuned == g_stationRefId ? "Mojave Desktop Radio" : "another station");
         }
         else if (verb == "config")
         {
@@ -535,7 +550,13 @@ namespace
             TryLaunchBridge();
         }
 
-        if (g_uiDirty && g_gameLoaded && GetTickCount64() - g_lastUiDispatch > 100)
+        // Repaint the Pip-Boy panel on every change and, in addition, 4x per second.
+        // The game keeps the Pip-Boy menus alive while they are hidden (and across save loads), and
+        // the panel only accepts updates while it is open, so change-only updates could leave a stale
+        // panel on screen, e.g. after dying (the game switches the radio off) and loading a save.
+        // Never during a load: script handlers must not run while the save is being read.
+        const ULONGLONG sinceUi = GetTickCount64() - g_lastUiDispatch;
+        if (g_gameLoaded && !g_loading && (g_uiDirty ? sinceUi > 100 : sinceUi > 250))
             DispatchUi();
     }
 
@@ -562,6 +583,7 @@ namespace
             break;
         case NVSEMessagingInterface::kMessage_PostLoadGame:
             g_loading = false;
+            g_uiDirty = true;
             break;
         case NVSEMessagingInterface::kMessage_ExitToMainMenu:
             LeaveGame("exit to main menu");
@@ -580,14 +602,15 @@ namespace
     bool RegisterEvents()
     {
         // MDR:State (int active, int playing, signal, status, artist, track, fx, playLabel, nextLabel, prevLabel, fxLabel)
+        // MDR:State (int active, int playing, int revision, signal, status, artist, track, fx, playLabel, nextLabel, prevLabel, fxLabel)
         static EM::ParamType stateParams[] = {
-            EM::eParamType_Int, EM::eParamType_Int, EM::eParamType_String, EM::eParamType_String,
+            EM::eParamType_Int, EM::eParamType_Int, EM::eParamType_Int, EM::eParamType_String, EM::eParamType_String,
             EM::eParamType_String, EM::eParamType_String, EM::eParamType_String, EM::eParamType_String,
             EM::eParamType_String, EM::eParamType_String, EM::eParamType_String};
         static EM::ParamType stringParam[] = {EM::eParamType_String};
         static EM::ParamType setParams[] = {EM::eParamType_String, EM::eParamType_Float};
 
-        bool ok = g_events->RegisterEvent("MDR:State", 11, stateParams, EM::kFlags_None);
+        bool ok = g_events->RegisterEvent("MDR:State", 12, stateParams, EM::kFlags_None);
         ok &= g_events->RegisterEvent("MDR:Notify", 1, stringParam, EM::kFlags_None);
         ok &= g_events->RegisterEvent("MDR:Cmd", 1, stringParam, EM::kFlag_AllowScriptDispatch);
         ok &= g_events->SetNativeEventHandler("MDR:Cmd", OnScriptCommand);
