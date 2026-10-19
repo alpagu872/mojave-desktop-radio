@@ -1,0 +1,169 @@
+<!-- Mojave Desktop Radio: Pip-Boy DATA > RADIO panel (inserted into MM_MainRect by UIO).
+     Visible only on the Radio tab while the "Mojave Desktop Radio" station is tuned.
+     It covers the right-hand pane (where the waveform is) with the regular Pip-Boy screen
+     background, so nothing of VUI+ / Pip-Boy 2000 Mk VI is modified.
+     The four hotrects are real buttons: clicks are caught by JIP's SetOnMenuClickEventHandler
+     (see ln_MojaveDesktopRadio.txt / OnClick.gek). Fonts come from the menu (keeps VUI+ and the
+     Turkish font package). -->
+<rect name="MDR_Panel">
+	<locus> 1 </locus>
+	<x> <copy src="sibling(MM_DataRect)" trait="x" /> </x>
+	<y> <copy src="sibling(MM_DataRect)" trait="y" /> </y>
+	<width> <copy src="sibling(MM_DataRect)" trait="width" /> </width>
+	<height> <copy src="sibling(MM_DataRect)" trait="height" /> </height>
+	<depth> 8 </depth>
+	<visible>
+		<copy src="MM_Tabline" trait="_CurrentTab" />
+		<eq> 4 </eq>
+		<and src="io" trait="_MDR_Active" />
+	</visible>
+	<_pad> 20 </_pad>
+	<_gap> 6 </_gap>
+
+	<!-- same texture/brightness as the Pip-Boy screen background: hides the empty waveform -->
+	<image name="MDR_Backdrop">
+		<filename> Interface\Shared\Background\pipboy.dds </filename>
+		<width> <copy src="parent" trait="width" /> </width>
+		<height> <copy src="parent" trait="height" /> </height>
+		<brightness> 90 </brightness>
+		<depth> 1 </depth>
+	</image>
+
+	<text name="MDR_Header">
+		<x> <copy src="parent" trait="_pad" /> </x>
+		<y> 8 </y>
+		<font> <copy src="io" trait="font" /> </font>
+		<string> MOJAVE DESKTOP RADIO </string>
+		<wrapwidth> <copy src="parent" trait="width" /> <sub src="parent" trait="_pad" /> <sub src="parent" trait="_pad" /> </wrapwidth>
+		<alpha> 255 </alpha>
+		<brightness> 280 </brightness>
+		<depth> 3 </depth>
+	</text>
+
+	<image name="MDR_Rule1">
+		<filename> Interface\Shared\solid.dds </filename>
+		<texatlas> Interface\InterfaceShared.tai </texatlas>
+		<x> <copy src="parent" trait="_pad" /> </x>
+		<y> <copy src="sibling(MDR_Header)" trait="y" /> <add src="sibling(MDR_Header)" trait="height" /> <add> 6 </add> </y>
+		<width> <copy src="parent" trait="width" /> <sub src="parent" trait="_pad" /> <sub src="parent" trait="_pad" /> </width>
+		<height> 2 </height>
+		<alpha> 180 </alpha>
+		<depth> 3 </depth>
+	</image>
+
+	<text name="MDR_Signal">
+		<x> <copy src="parent" trait="_pad" /> </x>
+		<y> <copy src="sibling(MDR_Rule1)" trait="y" /> <add> 14 </add> </y>
+		<font> <copy src="io" trait="font" /> </font>
+		<string> <copy src="io" trait="_MDR_Signal" /> </string>
+		<wrapwidth> <copy src="parent" trait="width" /> <sub src="parent" trait="_pad" /> <sub src="parent" trait="_pad" /> </wrapwidth>
+		<alpha> 255 </alpha>
+		<depth> 3 </depth>
+	</text>
+
+	<text name="MDR_Status">
+		<x> <copy src="parent" trait="_pad" /> </x>
+		<y> <copy src="sibling(MDR_Signal)" trait="y" /> <add src="sibling(MDR_Signal)" trait="height" /> <add src="parent" trait="_gap" /> </y>
+		<font> <copy src="io" trait="font" /> </font>
+		<string> <copy src="io" trait="_MDR_Status" /> </string>
+		<wrapwidth> <copy src="parent" trait="width" /> <sub src="parent" trait="_pad" /> <sub src="parent" trait="_pad" /> </wrapwidth>
+		<alpha> 255 </alpha>
+		<depth> 3 </depth>
+	</text>
+
+	<text name="MDR_Artist">
+		<x> <copy src="parent" trait="_pad" /> </x>
+		<y> <copy src="sibling(MDR_Status)" trait="y" /> <add src="sibling(MDR_Status)" trait="height" /> <add> 18 </add> </y>
+		<font> <copy src="io" trait="font" /> </font>
+		<string> <copy src="io" trait="_MDR_Artist" /> </string>
+		<wrapwidth> <copy src="parent" trait="width" /> <sub src="parent" trait="_pad" /> <sub src="parent" trait="_pad" /> </wrapwidth>
+		<alpha> 255 </alpha>
+		<brightness> 280 </brightness>
+		<depth> 3 </depth>
+	</text>
+
+	<text name="MDR_Track">
+		<x> <copy src="parent" trait="_pad" /> </x>
+		<y> <copy src="sibling(MDR_Artist)" trait="y" /> <add src="sibling(MDR_Artist)" trait="height" /> <add src="parent" trait="_gap" /> </y>
+		<font> <copy src="io" trait="font" /> </font>
+		<string> <copy src="io" trait="_MDR_Track" /> </string>
+		<wrapwidth> <copy src="parent" trait="width" /> <sub src="parent" trait="_pad" /> <sub src="parent" trait="_pad" /> </wrapwidth>
+		<alpha> 255 </alpha>
+		<brightness> 280 </brightness>
+		<depth> 3 </depth>
+	</text>
+
+	<text name="MDR_Fx">
+		<x> <copy src="parent" trait="_pad" /> </x>
+		<y> <copy src="sibling(MDR_Track)" trait="y" /> <add src="sibling(MDR_Track)" trait="height" /> <add> 18 </add> </y>
+		<font> <copy src="io" trait="font" /> </font>
+		<string> <copy src="io" trait="_MDR_Fx" /> </string>
+		<wrapwidth> <copy src="parent" trait="width" /> <sub src="parent" trait="_pad" /> <sub src="parent" trait="_pad" /> </wrapwidth>
+		<alpha> 255 </alpha>
+		<depth> 3 </depth>
+	</text>
+
+	<image name="MDR_Rule2">
+		<filename> Interface\Shared\solid.dds </filename>
+		<texatlas> Interface\InterfaceShared.tai </texatlas>
+		<x> <copy src="parent" trait="_pad" /> </x>
+		<y> <copy src="sibling(MDR_Fx)" trait="y" /> <add src="sibling(MDR_Fx)" trait="height" /> <add> 14 </add> </y>
+		<width> <copy src="parent" trait="width" /> <sub src="parent" trait="_pad" /> <sub src="parent" trait="_pad" /> </width>
+		<height> 2 </height>
+		<alpha> 180 </alpha>
+		<depth> 3 </depth>
+	</image>
+
+	<!-- ===== buttons (text_box.xml is the standard prefab used by the Pip-Boy's own buttons) ===== -->
+	<hotrect name="MDR_BtnPlay">
+		<include src="text_box.xml" />
+		<justify> &left; </justify>
+		<_x> <copy src="parent" trait="_pad" /> <sub> 10 </sub> </_x>
+		<_y> <copy src="sibling(MDR_Rule2)" trait="y" /> <add> 10 </add> </_y>
+		<_horbuf> 20 </_horbuf>
+		<_verbuf> 10 </_verbuf>
+		<string> <copy src="io" trait="_MDR_PlayLabel" /> </string>
+		<clicksound> UIPipboySelect </clicksound>
+		<_VUI+OutlineIntensity> 0 </_VUI+OutlineIntensity>
+		<depth> 4 </depth>
+	</hotrect>
+
+	<hotrect name="MDR_BtnNext">
+		<include src="text_box.xml" />
+		<justify> &left; </justify>
+		<_x> <copy src="sibling(MDR_BtnPlay)" trait="_x" /> </_x>
+		<_y> <copy src="sibling(MDR_BtnPlay)" trait="_y" /> <add src="sibling(MDR_BtnPlay)" trait="height" /> </_y>
+		<_horbuf> 20 </_horbuf>
+		<_verbuf> 10 </_verbuf>
+		<string> <copy src="io" trait="_MDR_NextLabel" /> </string>
+		<clicksound> UIPipboySelect </clicksound>
+		<_VUI+OutlineIntensity> 0 </_VUI+OutlineIntensity>
+		<depth> 4 </depth>
+	</hotrect>
+
+	<hotrect name="MDR_BtnPrev">
+		<include src="text_box.xml" />
+		<justify> &left; </justify>
+		<_x> <copy src="sibling(MDR_BtnPlay)" trait="_x" /> </_x>
+		<_y> <copy src="sibling(MDR_BtnNext)" trait="_y" /> <add src="sibling(MDR_BtnNext)" trait="height" /> </_y>
+		<_horbuf> 20 </_horbuf>
+		<_verbuf> 10 </_verbuf>
+		<string> <copy src="io" trait="_MDR_PrevLabel" /> </string>
+		<clicksound> UIPipboySelect </clicksound>
+		<_VUI+OutlineIntensity> 0 </_VUI+OutlineIntensity>
+		<depth> 4 </depth>
+	</hotrect>
+
+	<hotrect name="MDR_BtnFx">
+		<include src="text_box.xml" />
+		<justify> &left; </justify>
+		<_x> <copy src="sibling(MDR_BtnPlay)" trait="_x" /> </_x>
+		<_y> <copy src="sibling(MDR_BtnPrev)" trait="_y" /> <add src="sibling(MDR_BtnPrev)" trait="height" /> </_y>
+		<_horbuf> 20 </_horbuf>
+		<_verbuf> 10 </_verbuf>
+		<string> <copy src="io" trait="_MDR_FxLabel" /> </string>
+		<clicksound> UIPipboySelect </clicksound>
+		<_VUI+OutlineIntensity> 0 </_VUI+OutlineIntensity>
+		<depth> 4 </depth>
+	</hotrect>
+</rect>

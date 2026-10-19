@@ -1,0 +1,20 @@
+begin Function {}
+	; Sends every MCM value to the plugin, one value per line (DispatchEventAlt "MDR:Set" "<key>" <number>).
+	; Called on load and by MCM (event MDR_OnConfigChanged). The plugin batches the values into one update.
+	; Keep lines short and avoid string building here: the game's script compiler is picky about both.
+	DispatchEventAlt "MDR:Set" "fx" (Player.AuxVarGetFlt "*_MDRFx")
+	DispatchEventAlt "MDR:Set" "preset" (Player.AuxVarGetFlt "*_MDRPreset")
+	DispatchEventAlt "MDR:Set" "volume" (Player.AuxVarGetFlt "*_MDRVolume")
+	DispatchEventAlt "MDR:Set" "static" (Player.AuxVarGetFlt "*_MDRStatic")
+	DispatchEventAlt "MDR:Set" "saturation" (Player.AuxVarGetFlt "*_MDRSaturation")
+	DispatchEventAlt "MDR:Set" "custom" (Player.AuxVarGetFlt "*_MDRCustom")
+	DispatchEventAlt "MDR:Set" "lowpass" (Player.AuxVarGetFlt "*_MDRLowPass")
+	DispatchEventAlt "MDR:Set" "highpass" (Player.AuxVarGetFlt "*_MDRHighPass")
+	DispatchEventAlt "MDR:Set" "width" (Player.AuxVarGetFlt "*_MDRWidth")
+	DispatchEventAlt "MDR:Set" "fade" (Player.AuxVarGetFlt "*_MDRFade")
+	DispatchEventAlt "MDR:Set" "tuning" (Player.AuxVarGetFlt "*_MDRTuning")
+	DispatchEventAlt "MDR:Set" "autopause" (Player.AuxVarGetFlt "*_MDRAutoPause")
+	DispatchEventAlt "MDR:Set" "autoplay" (Player.AuxVarGetFlt "*_MDRAutoPlay")
+	DispatchEventAlt "MDR:Set" "pausemenu" (Player.AuxVarGetFlt "*_MDRPauseMenu")
+	DispatchEventAlt "MDR:Set" "trackmsg" (Player.AuxVarGetFlt "*_MDRTrackMsg")
+end

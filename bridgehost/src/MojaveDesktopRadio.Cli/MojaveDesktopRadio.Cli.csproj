@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>MojaveDesktopRadio.Cli</RootNamespace>
+    <AssemblyName>mdr</AssemblyName>
+    <AssemblyTitle>Mojave Desktop Radio diagnostics</AssemblyTitle>
+    <Description>Command-line diagnostics for Mojave Desktop Radio</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MojaveDesktopRadio.Core\MojaveDesktopRadio.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>MojaveDesktopRadio.Tray</RootNamespace>
+    <AssemblyName>MojaveDesktopRadio</AssemblyName>
+    <AssemblyTitle>Mojave Desktop Radio BridgeHost</AssemblyTitle>
+    <Description>Tray companion for the Fallout: New Vegas mod Mojave Desktop Radio (Spotify control and radio sound effects)</Description>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MojaveDesktopRadio.Core\MojaveDesktopRadio.Core.csproj" />
+  </ItemGroup>
+
+</Project>

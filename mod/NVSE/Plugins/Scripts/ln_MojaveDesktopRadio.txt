@@ -1,0 +1,67 @@
+; Mojave Desktop Radio - JIP Script Runner, runs on every save load and new game.
+; Requires: xNVSE 6.3+, JIP LN NVSE, ShowOff xNVSE, UIO, MojaveDesktopRadio.dll + MojaveDesktopRadio.esp
+;
+; The plugin registers NO script commands (no opcode range). Everything goes through xNVSE events:
+;   DispatchEventAlt "MDR:Cmd" "<command>"   script -> plugin   (init / click / toggle / next / prev / refresh / menupause)
+;   DispatchEventAlt "MDR:Set" "<key>" <n>    script -> plugin   (one MCM value, see PushConfig.gek)
+; Keep script lines short and simple - run tools\lint_scripts.py after editing.
+;   "MDR:State", "MDR:Notify"                 plugin -> script   (handled by the UDFs below)
+
+if eval (GetPluginVersion "MojaveDesktopRadio") < 2
+	MessageBoxEx "Mojave Desktop Radio: MojaveDesktopRadio.dll is missing or outdated (need v2).%rSee MojaveDesktopRadio.log in the game folder."
+	return
+endif
+if eval (GetPluginVersion "JIP LN NVSE") < 1
+	MessageBoxEx "Mojave Desktop Radio requires JIP LN NVSE."
+	return
+endif
+if eval (GetPluginVersion "ShowOffNVSE Plugin") < 1
+	MessageBoxEx "Mojave Desktop Radio requires ShowOff xNVSE."
+	return
+endif
+if eval (IsModLoaded "MojaveDesktopRadio.esp") == 0
+	MessageBoxEx "Mojave Desktop Radio: activate MojaveDesktopRadio.esp in your plugin list."
+	return
+endif
+
+; ---- settings: Data\Config\MojaveDesktopRadio.ini (edited through MCM, read through ShowOff's cache) ----
+Player.AuxVarSetFlt "*_MDRFx" (GetINIFloat_Cached "FX:bEnabled" "MojaveDesktopRadio.ini" 1) 0
+Player.AuxVarSetFlt "*_MDRPreset" (GetINIFloat_Cached "FX:iPreset" "MojaveDesktopRadio.ini" 1) 0
+Player.AuxVarSetFlt "*_MDRVolume" (GetINIFloat_Cached "FX:iVolume" "MojaveDesktopRadio.ini" 100) 0
+Player.AuxVarSetFlt "*_MDRStatic" (GetINIFloat_Cached "FX:iStaticIntensity" "MojaveDesktopRadio.ini" 50) 0
+Player.AuxVarSetFlt "*_MDRSaturation" (GetINIFloat_Cached "FX:iSaturation" "MojaveDesktopRadio.ini" 50) 0
+Player.AuxVarSetFlt "*_MDRCustom" (GetINIFloat_Cached "FX:bCustomTone" "MojaveDesktopRadio.ini" 0) 0
+Player.AuxVarSetFlt "*_MDRLowPass" (GetINIFloat_Cached "FX:iLowPassHz" "MojaveDesktopRadio.ini" 3300) 0
+Player.AuxVarSetFlt "*_MDRHighPass" (GetINIFloat_Cached "FX:iHighPassHz" "MojaveDesktopRadio.ini" 280) 0
+Player.AuxVarSetFlt "*_MDRWidth" (GetINIFloat_Cached "FX:iStereoWidth" "MojaveDesktopRadio.ini" 20) 0
+Player.AuxVarSetFlt "*_MDRFade" (GetINIFloat_Cached "FX:iFadeMs" "MojaveDesktopRadio.ini" 250) 0
+Player.AuxVarSetFlt "*_MDRTuning" (GetINIFloat_Cached "FX:bTuningEffect" "MojaveDesktopRadio.ini" 1) 0
+Player.AuxVarSetFlt "*_MDRAutoPause" (GetINIFloat_Cached "Behaviour:bAutoPause" "MojaveDesktopRadio.ini" 1) 0
+Player.AuxVarSetFlt "*_MDRAutoPlay" (GetINIFloat_Cached "Behaviour:bAutoPlay" "MojaveDesktopRadio.ini" 1) 0
+Player.AuxVarSetFlt "*_MDRPauseMenu" (GetINIFloat_Cached "Behaviour:iPauseMenu" "MojaveDesktopRadio.ini" 0) 0
+Player.AuxVarSetFlt "*_MDRTrackMsg" (GetINIFloat_Cached "Behaviour:bTrackMessages" "MojaveDesktopRadio.ini" 1) 0
+Player.AuxVarSetFlt "*_MDRKeyToggle" (GetINIFloat_Cached "Keys:iPlayPause" "MojaveDesktopRadio.ini" 0) 0
+Player.AuxVarSetFlt "*_MDRKeyNext" (GetINIFloat_Cached "Keys:iNext" "MojaveDesktopRadio.ini" 0) 0
+Player.AuxVarSetFlt "*_MDRKeyPrev" (GetINIFloat_Cached "Keys:iPrevious" "MojaveDesktopRadio.ini" 0) 0
+Player.AuxVarSetFlt "*_MDRKeyFx" (GetINIFloat_Cached "Keys:iCycleFx" "MojaveDesktopRadio.ini" 0) 0
+Player.AuxVarSetFlt "*_MDRKeyScope" (GetINIFloat_Cached "Keys:iScope" "MojaveDesktopRadio.ini" 0) 0
+
+; ---- tell the plugin which reference is our station (the mod index changes with the load order) ----
+DispatchEventAlt "MDR:Cmd" (sv_Construct "init %g" (GetModIndex "MojaveDesktopRadio.esp"))
+Call (CompileScript "MojaveDesktopRadio\PushConfig.gek")
+
+; ---- event handlers: registered once per game session (they survive save loads) ----
+if eval (Player.AuxVarGetFlt "*_MDRInit") == 0
+	Player.AuxVarSetFlt "*_MDRInit" 1 0
+	SetEventHandlerAlt "MDR:State" (CompileScript "MojaveDesktopRadio\OnState.gek")
+	SetEventHandlerAlt "MDR:Notify" (CompileScript "MojaveDesktopRadio\OnNotify.gek")
+	SetEventHandlerAlt "MDR_OnConfigChanged" (CompileScript "MojaveDesktopRadio\PushConfig.gek")
+	SetEventHandlerAlt "MDR_OnAssignKeys" (CompileScript "MojaveDesktopRadio\AssignKeys.gek")
+	; real Pip-Boy buttons: every target tile inside the injected panel (see Menus\Prefabs\MojaveDesktopRadio\Panel.xml)
+	SetOnMenuClickEventHandler (CompileScript "MojaveDesktopRadio\OnClick.gek") 1 "MapMenu\GLOW_BRANCH\MM_MainRect\MDR_Panel"
+	SetOnMenuOpenEventHandler (CompileScript "MojaveDesktopRadio\OnMapMenuOpen.gek") 1 1023
+	SetOnMenuOpenEventHandler (CompileScript "MojaveDesktopRadio\OnPauseMenuOpen.gek") 1 1013
+	SetOnMenuCloseEventHandler (CompileScript "MojaveDesktopRadio\OnPauseMenuClose.gek") 1 1013
+endif
+
+Call (CompileScript "MojaveDesktopRadio\AssignKeys.gek")

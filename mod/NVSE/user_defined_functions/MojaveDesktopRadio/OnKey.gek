@@ -1,0 +1,22 @@
+begin Function {int iKey}
+	; Hotkeys work on the Pip-Boy Radio tab, or anywhere outside menus when "Hotkey Scope" = Anywhere.
+	if eval (MenuMode 1023)
+		if eval (GetUIFloatAlt "MapMenu\GLOW_BRANCH\MM_Tabline\_CurrentTab") != 4
+			return
+		endif
+	elseif MenuMode
+		return
+	elseif eval (Player.AuxVarGetFlt "*_MDRKeyScope") == 0
+		return
+	endif
+
+	if eval iKey == (Player.AuxVarGetFlt "*_MDRKeyToggle")
+		DispatchEventAlt "MDR:Cmd" "toggle"
+	elseif eval iKey == (Player.AuxVarGetFlt "*_MDRKeyNext")
+		DispatchEventAlt "MDR:Cmd" "next"
+	elseif eval iKey == (Player.AuxVarGetFlt "*_MDRKeyPrev")
+		DispatchEventAlt "MDR:Cmd" "prev"
+	elseif eval iKey == (Player.AuxVarGetFlt "*_MDRKeyFx")
+		Call (CompileScript "MojaveDesktopRadio\CycleFx.gek")
+	endif
+end

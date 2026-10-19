@@ -1,0 +1,222 @@
+{
+ "modName": "MojaveDesktopRadio",
+ "displayName": "Mojave Desktop Radio",
+ "description": "Pip-Boy radio station that controls the Spotify desktop app, with old-radio sound effects.",
+ "saveFile": "MojaveDesktopRadio.ini",
+ "minMCMVersion": 1.3,
+ "minModVersion": 2.0,
+ "requirements": [
+  { "type": "file", "file": "NVSE/plugins/scripts/ln_MojaveDesktopRadio.txt" },
+  { "type": "dll", "file": "MojaveDesktopRadio", "version": 2 }
+ ],
+ "submenus": {
+  "1": {
+   "listTitle": "Radio FX",
+   "pageTitle": "Radio Sound Effects",
+   "columns": 1,
+   "enable": 1,
+   "active": 1,
+   "options": {
+    "1": {
+     "title": "Radio FX",
+     "type": 1,
+     "enable": 1,
+     "mouse": "Off = Spotify sounds exactly as on the desktop (no audio routing at all). On = the selected preset is applied while the station is tuned. FX needs an inaudible output device such as VB-CABLE or Steam Streaming Speakers (see README).",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRFx", "key": 0, "default": 1.0, "configINI": "FX:bEnabled" } ],
+     "strings": [ "Off", "On" ],
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    },
+    "2": {
+     "title": "Preset",
+     "type": 1,
+     "enable": 1,
+     "mouse": "Clean: untouched. Mojave Radio: 280 Hz - 3.3 kHz, narrow stereo, light compression and warmth. Wasteland Radio: narrower, mono, light hiss and crackle. Damaged Radio: weak signal with fading, short dropouts and drift - still intelligible.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRPreset", "key": 0, "default": 1.0, "configINI": "FX:iPreset" } ],
+     "strings": [ "Clean", "Mojave Radio", "Wasteland Radio", "Damaged Radio" ],
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    },
+    "3": {
+     "title": "Radio Volume",
+     "type": 2.5,
+     "enable": 1,
+     "mouse": "Volume of the processed radio sound (FX active). Spotify's own volume slider still applies.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRVolume", "key": 0, "default": 100.0, "configINI": "FX:iVolume" } ],
+     "scale": { "valueDecimal": 0, "valueIncrement": 5, "valueMin": 0, "valueMax": 150 },
+     "suffix": "%",
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    },
+    "4": {
+     "title": "Static Intensity",
+     "type": 2.5,
+     "enable": 1,
+     "mouse": "Amount of hiss and crackle. 50 = preset default, 0 = none.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRStatic", "key": 0, "default": 50.0, "configINI": "FX:iStaticIntensity" } ],
+     "scale": { "valueDecimal": 0, "valueIncrement": 5, "valueMin": 0, "valueMax": 100 },
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    },
+    "5": {
+     "title": "Saturation",
+     "type": 2.5,
+     "enable": 1,
+     "mouse": "Tube/speaker drive. 50 = preset default, 0 = clean.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRSaturation", "key": 0, "default": 50.0, "configINI": "FX:iSaturation" } ],
+     "scale": { "valueDecimal": 0, "valueIncrement": 5, "valueMin": 0, "valueMax": 100 },
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    },
+    "6": {
+     "title": "Custom Tone",
+     "type": 1,
+     "enable": 1,
+     "mouse": "On = use the Low-pass / High-pass / Stereo Width values below instead of the preset's own.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRCustom", "key": 0, "default": 0.0, "configINI": "FX:bCustomTone" } ],
+     "strings": [ "Off", "On" ],
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    },
+    "7": {
+     "title": "Low-pass Frequency",
+     "type": 2.5,
+     "enable": 1,
+     "mouse": "Upper limit of the radio band (Custom Tone).",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRLowPass", "key": 0, "default": 3300.0, "configINI": "FX:iLowPassHz" } ],
+     "scale": { "valueDecimal": 0, "valueIncrement": 100, "valueMin": 1500, "valueMax": 8000 },
+     "suffix": " Hz",
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    },
+    "8": {
+     "title": "High-pass Frequency",
+     "type": 2.5,
+     "enable": 1,
+     "mouse": "Lower limit of the radio band (Custom Tone).",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRHighPass", "key": 0, "default": 280.0, "configINI": "FX:iHighPassHz" } ],
+     "scale": { "valueDecimal": 0, "valueIncrement": 10, "valueMin": 60, "valueMax": 800 },
+     "suffix": " Hz",
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    },
+    "9": {
+     "title": "Stereo Width",
+     "type": 2.5,
+     "enable": 1,
+     "mouse": "0 = mono like an old speaker, 100 = original stereo (Custom Tone).",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRWidth", "key": 0, "default": 20.0, "configINI": "FX:iStereoWidth" } ],
+     "scale": { "valueDecimal": 0, "valueIncrement": 5, "valueMin": 0, "valueMax": 100 },
+     "suffix": "%",
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    },
+    "10": {
+     "title": "Transition Fade Duration",
+     "type": 2.5,
+     "enable": 1,
+     "mouse": "Fade in/out when the station is switched on or off.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRFade", "key": 0, "default": 250.0, "configINI": "FX:iFadeMs" } ],
+     "scale": { "valueDecimal": 0, "valueIncrement": 25, "valueMin": 0, "valueMax": 1000 },
+     "suffix": " ms",
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    },
+    "11": {
+     "title": "Tuning Static on Station Start",
+     "type": 1,
+     "enable": 1,
+     "mouse": "Plays a short, generated dial-tuning sweep when the station is switched on (not for Clean).",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRTuning", "key": 0, "default": 1.0, "configINI": "FX:bTuningEffect" } ],
+     "strings": [ "Off", "On" ],
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    }
+   }
+  },
+  "2": {
+   "listTitle": "Behaviour",
+   "pageTitle": "Station Behaviour",
+   "columns": 1,
+   "enable": 1,
+   "active": 1,
+   "options": {
+    "1": {
+     "title": "Automatically Pause When Station Disabled",
+     "type": 1,
+     "enable": 1,
+     "mouse": "On = Spotify pauses when you turn the radio off or tune another station. Off = Spotify keeps playing but is muted, so it never plays over the game radio.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRAutoPause", "key": 0, "default": 1.0, "configINI": "Behaviour:bAutoPause" } ],
+     "strings": [ "Off", "On" ],
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    },
+    "2": {
+     "title": "Auto-play When Station Selected",
+     "type": 1,
+     "enable": 1,
+     "mouse": "Start Spotify playback when you tune Mojave Desktop Radio.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRAutoPlay", "key": 0, "default": 1.0, "configINI": "Behaviour:bAutoPlay" } ],
+     "strings": [ "Off", "On" ],
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    },
+    "3": {
+     "title": "Pause Menu",
+     "type": 1,
+     "enable": 1,
+     "mouse": "What happens to the music while the game's pause menu is open.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRPauseMenu", "key": 0, "default": 0.0, "configINI": "Behaviour:iPauseMenu" } ],
+     "strings": [ "Keep Playing", "Pause", "Lower Volume" ],
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    },
+    "4": {
+     "title": "Track Change Messages",
+     "type": 1,
+     "enable": 1,
+     "mouse": "Corner message with artist and title when the track changes while the station is tuned.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRTrackMsg", "key": 0, "default": 1.0, "configINI": "Behaviour:bTrackMessages" } ],
+     "strings": [ "Off", "On" ],
+     "call": { "type": "event", "value": "MDR_OnConfigChanged" }
+    }
+   }
+  },
+  "3": {
+   "listTitle": "Hotkeys",
+   "pageTitle": "Optional Hotkeys",
+   "columns": 1,
+   "enable": 1,
+   "active": 1,
+   "options": {
+    "1": {
+     "title": "Play / Pause Key",
+     "type": 3,
+     "enable": 1,
+     "mouse": "Unassigned by default. The Pip-Boy panel buttons always work.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRKeyToggle", "key": 0, "default": 0.0, "configINI": "Keys:iPlayPause" } ],
+     "call": { "type": "event", "value": "MDR_OnAssignKeys" }
+    },
+    "2": {
+     "title": "Next Track Key",
+     "type": 3,
+     "enable": 1,
+     "mouse": "Unassigned by default.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRKeyNext", "key": 0, "default": 0.0, "configINI": "Keys:iNext" } ],
+     "call": { "type": "event", "value": "MDR_OnAssignKeys" }
+    },
+    "3": {
+     "title": "Previous Track Key",
+     "type": 3,
+     "enable": 1,
+     "mouse": "Unassigned by default.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRKeyPrev", "key": 0, "default": 0.0, "configINI": "Keys:iPrevious" } ],
+     "call": { "type": "event", "value": "MDR_OnAssignKeys" }
+    },
+    "4": {
+     "title": "Cycle FX Preset Key",
+     "type": 3,
+     "enable": 1,
+     "mouse": "Unassigned by default.",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRKeyFx", "key": 0, "default": 0.0, "configINI": "Keys:iCycleFx" } ],
+     "call": { "type": "event", "value": "MDR_OnAssignKeys" }
+    },
+    "5": {
+     "title": "Hotkey Scope",
+     "type": 1,
+     "enable": 1,
+     "mouse": "Pip-Boy Radio Tab: keys only work on DATA > RADIO. Anywhere: also during gameplay (never inside other menus).",
+     "vars": [ { "form": "PlayerRef", "auxVar": "*_MDRKeyScope", "key": 0, "default": 0.0, "configINI": "Keys:iScope" } ],
+     "strings": [ "Pip-Boy Radio Tab", "Anywhere" ],
+     "call": { "type": "event", "value": "MDR_OnAssignKeys" }
+    }
+   }
+  }
+ }
+}

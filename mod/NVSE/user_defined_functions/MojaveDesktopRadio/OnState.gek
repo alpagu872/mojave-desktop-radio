@@ -1,0 +1,18 @@
+begin Function {int iActive, int iPlaying, string_var sSignal, string_var sStatus, string_var sArtist, string_var sTrack, string_var sFx, string_var sPlay, string_var sNext, string_var sPrev, string_var sFxBtn}
+	; Plugin -> Pip-Boy panel. The panel copies these MapMenu root traits (Menus\Prefabs\MojaveDesktopRadio\Traits.xml).
+	; All texts come from Data\NVSE\Plugins\MojaveDesktopRadio.ini [Text] (translatable, Windows-1254).
+	if eval (MenuMode 1023)
+		SetUIFloat "MapMenu/_MDR_Active" iActive
+		SetUIFloat "MapMenu/_MDR_Playing" iPlaying
+		SetUIStringEx "MapMenu/_MDR_Signal" "%z" sSignal
+		SetUIStringEx "MapMenu/_MDR_Status" "%z" sStatus
+		SetUIStringEx "MapMenu/_MDR_Artist" "%z" sArtist
+		SetUIStringEx "MapMenu/_MDR_Track" "%z" sTrack
+		SetUIStringEx "MapMenu/_MDR_Fx" "%z" sFx
+		SetUIStringEx "MapMenu/_MDR_PlayLabel" "%z" sPlay
+		SetUIStringEx "MapMenu/_MDR_NextLabel" "%z" sNext
+		SetUIStringEx "MapMenu/_MDR_PrevLabel" "%z" sPrev
+		SetUIStringEx "MapMenu/_MDR_FxLabel" "%z" sFxBtn
+	endif
+	sv_Destruct sSignal sStatus sArtist sTrack sFx sPlay sNext sPrev sFxBtn
+end

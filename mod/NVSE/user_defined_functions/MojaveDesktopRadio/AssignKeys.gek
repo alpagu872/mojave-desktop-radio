@@ -1,0 +1,51 @@
+begin Function {}
+	; (Re)binds the optional hotkeys. All default to 0 = unassigned, so no existing key
+	; (Q/E lean, V bullet time, Shift, R, NumPad 4 ...) is ever taken over.
+	ref rKey
+	int iKey
+	int iOld
+
+	rKey = CompileScript "MojaveDesktopRadio\OnKey.gek"
+
+	iOld = Player.AuxVarGetFlt "*_MDRKeyToggleOld"
+	iKey = Player.AuxVarGetFlt "*_MDRKeyToggle"
+	if iOld
+		RemoveEventHandler (sv_Construct "OnKeyDown:%g" iOld) rKey
+	endif
+	Player.AuxVarSetFlt "*_MDRKeyToggleOld" iKey 0
+
+	iOld = Player.AuxVarGetFlt "*_MDRKeyNextOld"
+	if iOld
+		RemoveEventHandler (sv_Construct "OnKeyDown:%g" iOld) rKey
+	endif
+	Player.AuxVarSetFlt "*_MDRKeyNextOld" (Player.AuxVarGetFlt "*_MDRKeyNext") 0
+
+	iOld = Player.AuxVarGetFlt "*_MDRKeyPrevOld"
+	if iOld
+		RemoveEventHandler (sv_Construct "OnKeyDown:%g" iOld) rKey
+	endif
+	Player.AuxVarSetFlt "*_MDRKeyPrevOld" (Player.AuxVarGetFlt "*_MDRKeyPrev") 0
+
+	iOld = Player.AuxVarGetFlt "*_MDRKeyFxOld"
+	if iOld
+		RemoveEventHandler (sv_Construct "OnKeyDown:%g" iOld) rKey
+	endif
+	Player.AuxVarSetFlt "*_MDRKeyFxOld" (Player.AuxVarGetFlt "*_MDRKeyFx") 0
+
+	; bind the current keys (after all removals, so two slots sharing a key still work)
+	if iKey
+		SetEventHandler (sv_Construct "OnKeyDown:%g" iKey) rKey
+	endif
+	iKey = Player.AuxVarGetFlt "*_MDRKeyNext"
+	if iKey
+		SetEventHandler (sv_Construct "OnKeyDown:%g" iKey) rKey
+	endif
+	iKey = Player.AuxVarGetFlt "*_MDRKeyPrev"
+	if iKey
+		SetEventHandler (sv_Construct "OnKeyDown:%g" iKey) rKey
+	endif
+	iKey = Player.AuxVarGetFlt "*_MDRKeyFx"
+	if iKey
+		SetEventHandler (sv_Construct "OnKeyDown:%g" iKey) rKey
+	endif
+end

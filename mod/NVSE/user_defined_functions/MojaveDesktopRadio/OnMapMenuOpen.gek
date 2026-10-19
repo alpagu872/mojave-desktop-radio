@@ -1,0 +1,4 @@
+begin Function {int iMenuID}
+	; Pip-Boy DATA tab opened: ask the plugin to repaint the panel on the next frame
+	DispatchEventAlt "MDR:Cmd" "refresh"
+end

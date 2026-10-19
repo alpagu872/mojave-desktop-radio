@@ -1,0 +1,8 @@
+bin/
+obj/
+dist/
+nvse-plugin/build/
+.vs/
+.vscode/
+*.user
+__pycache__/

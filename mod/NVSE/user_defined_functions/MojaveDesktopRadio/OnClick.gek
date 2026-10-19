@@ -1,0 +1,9 @@
+begin Function {int iMenuID, int iTileID, string_var sTileName}
+	; JIP menu-click handler for every target tile inside MapMenu\GLOW_BRANCH\MM_MainRect\MDR_Panel
+	if eval (sTileName == "MDR_BtnFx")
+		Call (CompileScript "MojaveDesktopRadio\CycleFx.gek")
+	else
+		DispatchEventAlt "MDR:Cmd" (sv_Construct "click %z" sTileName)
+	endif
+	sv_Destruct sTileName
+end

@@ -1,0 +1,3 @@
+begin Function {int iMenuID}
+	DispatchEventAlt "MDR:Cmd" "menupause 0"
+end

@@ -1,0 +1,20 @@
+begin Function {}
+	; Pip-Boy "CHANGE FX MODE" button / hotkey: Clean -> Mojave -> Wasteland -> Damaged -> Clean.
+	; Kept in sync with MCM (AuxVars) and the INI, then sent straight to the plugin.
+	int iPreset
+
+	iPreset = Player.AuxVarGetFlt "*_MDRPreset"
+	iPreset += 1
+	if iPreset > 3
+		iPreset = 0
+	endif
+	Player.AuxVarSetFlt "*_MDRPreset" iPreset 0
+	Player.AuxVarSetFlt "*_MDRFx" 1 0
+
+	SetINIIntC "FX:iPreset" iPreset "MojaveDesktopRadio.ini"
+	SetINIIntC "FX:bEnabled" 1 "MojaveDesktopRadio.ini"
+	SaveCachedIni "MojaveDesktopRadio.ini"
+
+	DispatchEventAlt "MDR:Set" "fx" 1
+	DispatchEventAlt "MDR:Set" "preset" iPreset
+end

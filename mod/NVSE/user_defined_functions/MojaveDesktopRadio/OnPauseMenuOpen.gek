@@ -1,0 +1,4 @@
+begin Function {int iMenuID}
+	; pause menu (Esc) opened - the BridgeHost applies the MCM "Pause Menu" option
+	DispatchEventAlt "MDR:Cmd" "menupause 1"
+end

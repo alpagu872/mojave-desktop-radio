@@ -1,0 +1,5 @@
+begin Function {string_var sMessage}
+	; corner message (works with vanilla, VUI+ and B42 Notify)
+	MessageExAlt 4 "%z" sMessage
+	sv_Destruct sMessage
+end
